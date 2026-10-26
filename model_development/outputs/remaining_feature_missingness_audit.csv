@@ -1,0 +1,5 @@
+feature,missing_rows,missing_percent,expected_rows_missing_from_lookback
+volatility_10d,160,0.8065,160
+volatility_20d,320,1.6129,320
+volume_vs_avg20,304,1.5323,304
+trades_vs_avg20,304,1.5323,304

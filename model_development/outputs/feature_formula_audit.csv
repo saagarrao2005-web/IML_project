@@ -1,0 +1,12 @@
+feature,compared_rows,mismatch_rows,max_abs_error,status,matched_definition
+return_1d,19824,0,9.996344030316351e-17,PASS,
+return_2d,19808,0,9.974659986866641e-17,PASS,
+return_5d,19760,0,9.974659986866641e-17,PASS,
+return_10d,19680,0,9.974659986866641e-17,PASS,
+return_20d,19520,0,9.974659986866641e-17,PASS,
+open_close_return,19840,0,9.985502008591496e-17,PASS,
+volume_change_1d,19824,0,1.4210854715202004e-14,PASS,
+close_vs_sma_5,19776,0,9.985502008591496e-17,PASS,close/SMA - 1
+close_vs_sma_10,19696,0,9.996344030316351e-17,PASS,close/SMA - 1
+close_vs_sma_20,19536,0,9.974659986866641e-17,PASS,close/SMA - 1
+close_vs_sma_50,19056,0,9.974659986866641e-17,PASS,close/SMA - 1

@@ -1,0 +1,12 @@
+check,status,severity,details
+Feature whitelist,PASS,INFO,No target/future-named columns in the training feature list.
+Outcome columns excluded from inputs,PASS,INFO,"Outcome-related columns present but not selected: ['future_return_5d', 'target_up_5d']"
+After-close market data inventory,INFO,INFO,"Present: ['Open Price', 'High Price', 'Low Price', 'Close Price', 'Prev Close', 'Last Price', 'Average Price', 'Total Traded Quantity', 'Turnover ₹', 'No. of Trades', 'Deliverable Qty', '% Dly Qt to Traded Qty']; absent: []"
+Unique stock-date keys,PASS,INFO,Duplicate rows: 0
+Chronological ordering,PASS,INFO,Stocks with unsorted dates: 0
+OHLC consistency,PASS,INFO,Inconsistent rows: 0
+Positive closing prices,PASS,INFO,Invalid rows: 0
+Five-row target alignment,PASS,INFO,Compared rows: 19760; mismatches: 0; future price unavailable: 80
+Fundamental-data coverage,INFO,MEDIUM,No fundamental features are included in the current training feature list. This is a market-data-only experiment.
+Corporate-action adjustment,NOT_VERIFIED,HIGH,"This CSV alone does not establish whether prices are adjusted for splits, bonuses, dividends, or other corporate actions. Verify the data vendor's adjustment policy separately."
+Point-in-time feature availability,PARTIAL,HIGH,After-close OHLC and trading activity are eligible if the model prediction is made after those values are finalized. This script cannot verify original publication timestamps or vendor revisions.

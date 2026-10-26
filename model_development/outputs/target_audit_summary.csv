@@ -1,0 +1,2 @@
+total_rows,unique_symbols,duplicate_symbol_date_rows,rows_with_future_close,rows_with_target,target_mismatches,missing_target_but_future_exists,target_present_but_future_missing,expected_unavailable_future_rows
+19840,16,0,19760,19760,0,0,0,80

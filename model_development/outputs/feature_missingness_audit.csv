@@ -1,0 +1,19 @@
+feature,missing_rows,missing_percent
+return_1d,16,0.081
+return_2d,32,0.161
+return_5d,80,0.403
+return_10d,160,0.806
+return_20d,320,1.613
+close_vs_sma_5,64,0.323
+close_vs_sma_10,144,0.726
+close_vs_sma_20,304,1.532
+close_vs_sma_50,784,3.952
+volatility_10d,160,0.806
+volatility_20d,320,1.613
+open_close_return,0,0.0
+volume_change_1d,16,0.081
+volume_vs_avg20,304,1.532
+trades_vs_avg20,304,1.532
+day_of_week,0,0.0
+month,0,0.0
+% Dly Qt to Traded Qty,0,0.0

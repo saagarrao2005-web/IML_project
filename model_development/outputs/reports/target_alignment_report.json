@@ -1,0 +1,12 @@
+{
+  "total_rows": 19840,
+  "unique_symbols": 16,
+  "expected_nan_targets": 80,
+  "actual_nan_targets": 80,
+  "nan_count_exact_match": true,
+  "target_per_symbol_alignment_verified": true,
+  "ties_count": 39,
+  "class_1_count": 10328,
+  "class_0_count": 9432,
+  "class_1_ratio": 0.5205645161290322
+}

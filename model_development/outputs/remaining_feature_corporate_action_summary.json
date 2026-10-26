@@ -1,0 +1,65 @@
+{
+  "input_file": "D:\\B.Tech\\Sem3\\IML\\Project\\Stock_Prediction\\model_development\\outputs\\stock_features.csv",
+  "rows": 19840,
+  "unique_symbols": 16,
+  "duplicate_symbol_date_rows": 0,
+  "remaining_feature_checks": [
+    {
+      "feature": "volatility_10d",
+      "definition_tested": "Rolling 10-observation sample standard deviation of daily returns",
+      "compared_rows": 19680,
+      "mismatch_rows": 0,
+      "max_abs_error": 9.974659986866641e-17,
+      "missing_mask_mismatches": 0,
+      "status": "PASS"
+    },
+    {
+      "feature": "volatility_20d",
+      "definition_tested": "Rolling 20-observation sample standard deviation of daily returns",
+      "compared_rows": 19520,
+      "mismatch_rows": 0,
+      "max_abs_error": 9.974659986866641e-17,
+      "missing_mask_mismatches": 0,
+      "status": "PASS"
+    },
+    {
+      "feature": "volume_vs_avg20",
+      "definition_tested": "Current volume divided by 20-observation rolling mean: ratio_minus_1",
+      "compared_rows": 19536,
+      "mismatch_rows": 0,
+      "max_abs_error": 1.7763568394002505e-15,
+      "missing_mask_mismatches": 0,
+      "status": "PASS"
+    },
+    {
+      "feature": "trades_vs_avg20",
+      "definition_tested": "Current trade count divided by 20-observation rolling mean: ratio_minus_1",
+      "compared_rows": 19536,
+      "mismatch_rows": 0,
+      "max_abs_error": 8.881784197001252e-16,
+      "missing_mask_mismatches": 0,
+      "status": "PASS"
+    }
+  ],
+  "formula_checks_passed": 4,
+  "formula_checks_needing_review": 0,
+  "corporate_action_candidate_rows": 13,
+  "target_recheck": {
+    "rows": 19840,
+    "rows_with_future_close_5": 19760,
+    "future_return_compared_rows": 19760,
+    "future_return_mismatches": 0,
+    "target_compared_rows": 19760,
+    "target_mismatches": 0,
+    "labels_present_without_future_close": 0,
+    "missing_labels_when_future_close_exists": 0
+  },
+  "corporate_action_adjustment_status": "UNVERIFIED: confirm the NSE data fields and any corporate-action adjustments against official event records.",
+  "point_in_time_status": "PARTIAL: this script checks historical formulas and labels but cannot prove when vendor data became available or whether records were later revised.",
+  "interpretation": [
+    "A large move is a review candidate, not proof of a corporate action.",
+    "No automatic price adjustment or row deletion was performed.",
+    "Check official NSE records for splits, bonuses, dividends and other relevant events before changing the dataset.",
+    "If prices are unadjusted, verify whether the chosen target and features should use raw prices, adjusted prices, or both."
+  ]
+}

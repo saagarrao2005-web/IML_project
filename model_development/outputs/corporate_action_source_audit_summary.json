@@ -1,0 +1,13 @@
+{
+  "original_rows": 19840,
+  "original_symbols": 16,
+  "prepared_rows": 19840,
+  "prepared_symbols": 16,
+  "prepared_rows_with_original_match": 19840,
+  "prepared_rows_without_original_match": 0,
+  "close_matches": 19840,
+  "close_mismatches": 0,
+  "candidate_price_move_rows": 13,
+  "corporate_action_adjustment_status": "UNVERIFIED",
+  "note": "Large price moves are candidates only. Confirm events using official NSE corporate-action records. No price adjustments or source data modifications were performed."
+}

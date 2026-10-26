@@ -1,0 +1,31 @@
+{
+  "total_rows": 19840,
+  "unique_symbols": 16,
+  "symbols_list": [
+    "ABB",
+    "ADANIGREEN",
+    "APOLLOHOSP",
+    "HDFCBANK",
+    "INFY",
+    "MARUTI",
+    "MOTILALOFS",
+    "POWERINDIA",
+    "RELIANCE",
+    "SBIN",
+    "SIEMENS",
+    "SOLARINDS",
+    "TCS",
+    "TITAN",
+    "ULTRACEMCO",
+    "YESBANK"
+  ],
+  "date_min": "2021-10-25",
+  "date_max": "2026-10-23",
+  "invalid_dates": 0,
+  "duplicate_symbol_date_keys": 0,
+  "non_positive_close_prices": 0,
+  "ohlc_inconsistencies": 0,
+  "zero_or_negative_volume": 0,
+  "zero_or_negative_trades": 0,
+  "zero_or_negative_deliverable": 0
+}
