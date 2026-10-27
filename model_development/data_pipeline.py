@@ -28,6 +28,7 @@ from config import (
     TARGET_ALIGNMENT_REPORT_PATH,
     FEATURE_DEFINITIONS_PATH,
     HORIZON_SESSIONS,
+    HORIZON_REGRESSION_SESSIONS,
     EXPECTED_SYMBOLS,
     CONFIRMED_CORPORATE_ACTIONS,
     VERIFIED_MARKET_MOVES,
@@ -333,31 +334,44 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
-def construct_target(df: pd.DataFrame, horizon: int = HORIZON_SESSIONS) -> pd.DataFrame:
+def construct_target(
+    df: pd.DataFrame,
+    horizon: int = HORIZON_SESSIONS,
+    horizon_reg: int = HORIZON_REGRESSION_SESSIONS
+) -> pd.DataFrame:
     """
-    Constructs the forward target per stock.
-    Definition:
+    Constructs forward prediction targets per stock.
+    
+    Task A: 5-Trading-Session Directional Classification
     - Uses properly adjusted future close 5 trading sessions ahead (t + 5).
     - future_return_5d = adj_close(t+5) / adj_close(t) - 1.0
     - target_up_5d = 1.0 if future_return_5d > 0.0 else 0.0
     - Ties (future close exactly equal to current close) are assigned 0.0.
     - Final horizon sessions per stock have no known future price and are set to NaN.
+
+    Task B: 3-Month (63 Trading Sessions) Continuous-Return Regression
+    - Uses properly adjusted future close 63 trading sessions ahead (t + 63).
+    - future_return_63d = adj_close(t+63) / adj_close(t) - 1.0
+    - Final 63 sessions per stock have no known future price and are set to NaN.
     """
     data = df.copy()
     grouped = data.groupby("Symbol", sort=False)
 
-    # Forward shift per symbol
-    future_adj_close = grouped["adj_close"].shift(-horizon)
-    data["future_adj_close_5d"] = future_adj_close
-    data["future_return_5d"] = future_adj_close / data["adj_close"] - 1.0
-
-    # Binary classification target
-    has_future = future_adj_close.notna()
+    # Task A: 5-session forward return and classification target
+    future_adj_close_5d = grouped["adj_close"].shift(-horizon)
+    data["future_adj_close_5d"] = future_adj_close_5d
+    data["future_return_5d"] = future_adj_close_5d / data["adj_close"] - 1.0
+    has_future_5d = future_adj_close_5d.notna()
     data["target_up_5d"] = np.where(
-        has_future,
-        (future_adj_close > data["adj_close"]).astype(float),
+        has_future_5d,
+        (future_adj_close_5d > data["adj_close"]).astype(float),
         np.nan
     )
+
+    # Task B: 63-session forward return target
+    future_adj_close_63d = grouped["adj_close"].shift(-horizon_reg)
+    data["future_adj_close_63d"] = future_adj_close_63d
+    data["future_return_63d"] = future_adj_close_63d / data["adj_close"] - 1.0
 
     return data
 
@@ -374,7 +388,7 @@ def audit_target_alignment(df: pd.DataFrame, horizon: int = HORIZON_SESSIONS) ->
 
     actual_nan_targets = int(df["target_up_5d"].isna().sum())
 
-    # Verify per-symbol alignment
+    # Verify per-symbol alignment for Task A
     symbol_shifts_ok = True
     for symbol, group in grouped:
         group_close = group["adj_close"].to_numpy()
@@ -389,6 +403,19 @@ def audit_target_alignment(df: pd.DataFrame, horizon: int = HORIZON_SESSIONS) ->
                 symbol_shifts_ok = False
                 break
 
+    # Verify per-symbol alignment for Task B (63-day regression)
+    expected_nan_reg = unique_symbols * HORIZON_REGRESSION_SESSIONS
+    actual_nan_reg = int(df["future_return_63d"].isna().sum())
+    reg_shifts_ok = True
+    for symbol, group in grouped:
+        group_close = group["adj_close"].to_numpy()
+        group_ret = group["future_return_63d"].to_numpy()
+        for i in range(len(group_close) - HORIZON_REGRESSION_SESSIONS):
+            expected_ret = (group_close[i + HORIZON_REGRESSION_SESSIONS] / group_close[i]) - 1.0
+            if not np.isclose(group_ret[i], expected_ret, rtol=1e-10):
+                reg_shifts_ok = False
+                break
+
     # Check ties
     ties_count = int(
         (df["target_up_5d"].notna() & (df["future_adj_close_5d"] == df["adj_close"])).sum()
@@ -397,6 +424,25 @@ def audit_target_alignment(df: pd.DataFrame, horizon: int = HORIZON_SESSIONS) ->
     report = {
         "total_rows": total_rows,
         "unique_symbols": unique_symbols,
+        "task_a_5d": {
+            "expected_nan_targets": expected_nan_targets,
+            "actual_nan_targets": actual_nan_targets,
+            "nan_count_exact_match": (actual_nan_targets == expected_nan_targets),
+            "target_per_symbol_alignment_verified": symbol_shifts_ok,
+            "ties_count": ties_count,
+            "class_1_count": int((df["target_up_5d"] == 1.0).sum()),
+            "class_0_count": int((df["target_up_5d"] == 0.0).sum()),
+            "class_1_ratio": float((df["target_up_5d"] == 1.0).mean()),
+        },
+        "task_b_63d": {
+            "expected_nan_targets": expected_nan_reg,
+            "actual_nan_targets": actual_nan_reg,
+            "nan_count_exact_match": (actual_nan_reg == expected_nan_reg),
+            "return_alignment_verified": reg_shifts_ok,
+            "mean_forward_return": float(df["future_return_63d"].mean()),
+            "std_forward_return": float(df["future_return_63d"].std()),
+        },
+        # Backwards compatibility keys
         "expected_nan_targets": expected_nan_targets,
         "actual_nan_targets": actual_nan_targets,
         "nan_count_exact_match": (actual_nan_targets == expected_nan_targets),

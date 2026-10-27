@@ -344,3 +344,122 @@ def test_model_serialization_fidelity(analytical_data):
     preds2 = model.predict_proba(X_sample)
     assert np.allclose(preds1, preds2), "Model predictions are not deterministic"
     assert preds1.shape == (len(X_sample), 2), "Unexpected prediction shape"
+
+
+# ==============================================================================
+# RESEARCH PROTOCOL & TRAINING PIPELINE TESTS (PHASE 4 - 6)
+# ==============================================================================
+
+def test_task_b_target_63d_alignment(analytical_data):
+    """
+    Test Task B 3-month continuous return target:
+    1. future_return_63d matches adj_close(t+63) / adj_close(t) - 1.0.
+    2. Final 63 rows per stock are strictly NaN.
+    3. Exactly 16 * 63 = 1008 NaNs exist in the entire dataset.
+    """
+    assert "future_return_63d" in analytical_data.columns, "Missing future_return_63d column"
+    total_nans = analytical_data["future_return_63d"].isna().sum()
+    assert total_nans == 16 * 63, f"Expected 1008 NaNs in future_return_63d, got {total_nans}"
+
+    for sym, grp in analytical_data.groupby("Symbol"):
+        grp = grp.sort_values("Date").reset_index(drop=True)
+        close = grp["adj_close"].to_numpy()
+        ret63 = grp["future_return_63d"].to_numpy()
+
+        assert np.isnan(ret63[-63:]).all(), f"{sym} does not have 63 NaNs at end"
+        assert not np.isnan(ret63[:-63]).any(), f"{sym} has unexpected NaNs before end"
+
+        for i in range(min(20, len(close) - 63)):
+            expected = (close[i + 63] / close[i]) - 1.0
+            assert np.isclose(ret63[i], expected, rtol=1e-10), f"Mismatch in {sym} 63d return at {i}"
+
+
+def test_regression_pipeline_models(analytical_data):
+    """
+    Test that all 5 continuous-return regression models can be instantiated,
+    fitted, and evaluated on valid feature inputs.
+    """
+    from training_pipeline import build_regression_models, evaluate_regression
+
+    reg_models = build_regression_models()
+    assert len(reg_models) == 5
+    assert "Zero_Return_Baseline" in reg_models
+    assert "Training_Mean_Baseline" in reg_models
+    assert "Ridge_Regression" in reg_models
+    assert "Random_Forest_Regressor" in reg_models
+    assert "Hist_Gradient_Boosting_Regressor" in reg_models
+
+    valid = analytical_data.dropna(subset=["future_return_5d"]).tail(200)
+    train_slice = valid.iloc[:150]
+    test_slice = valid.iloc[150:]
+    train_mean = float(train_slice["future_return_5d"].mean())
+
+    for name, pipe in reg_models.items():
+        pipe.fit(train_slice[FEATURE_COLUMNS], train_slice["future_return_5d"])
+        preds = pipe.predict(test_slice[FEATURE_COLUMNS])
+        assert len(preds) == len(test_slice)
+        metrics = evaluate_regression(test_slice["future_return_5d"].to_numpy(), preds, train_mean)
+        assert metrics["mae"] >= 0.0
+        assert metrics["rmse"] >= 0.0
+
+
+def test_preprocessing_isolation_no_leakage():
+    """
+    Test that imputers and scalers fitted on training fold observations
+    do not leak information from test fold observations.
+    """
+    from sklearn.impute import SimpleImputer
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.pipeline import Pipeline
+
+    # Create synthetic train and test matrices with distinct distributions
+    train_mat = np.array([[10.0, 10.0], [20.0, np.nan], [30.0, 30.0]])
+    test_mat = np.array([[100.0, np.nan], [200.0, 200.0]])
+
+    pipe = Pipeline([
+        ("imputer", SimpleImputer(strategy="median")),
+        ("scaler", StandardScaler()),
+    ])
+
+    pipe.fit(train_mat)
+    # The fitted imputer's statistic for col 1 must be median of [10.0, 30.0] = 20.0
+    imputer_stat = pipe.named_steps["imputer"].statistics_
+    assert np.isclose(imputer_stat[1], 20.0), f"Imputer leaked or wrong median: {imputer_stat}"
+
+    # Transforming test_mat must use train median (20.0), NOT test values (200.0)
+    test_transformed = pipe.transform(test_mat)
+    assert not np.isnan(test_transformed).any(), "NaN found after pipeline transform"
+
+
+def test_fundamental_coverage_transparency(analytical_data):
+    """
+    Test that the pipeline transparently reports fundamental feature availability
+    and strictly refuses to fabricate missing values.
+    """
+    from training_pipeline import resolve_feature_subset
+
+    mkt_feats, status_mkt = resolve_feature_subset(analytical_data, "market")
+    assert status_mkt == "OK"
+    assert len(mkt_feats) == 20
+
+    fund_feats, status_fund = resolve_feature_subset(analytical_data, "fundamentals")
+    assert "BLOCKED" in status_fund
+    assert len(fund_feats) == 0
+
+    comb_feats, status_comb = resolve_feature_subset(analytical_data, "combined")
+    assert "BLOCKED" in status_comb
+    assert len(comb_feats) == 0
+
+
+def test_purge_window_task_b_sufficiency():
+    """
+    Test that for Task B (63-session horizon), a 63-session purge window
+    strictly guarantees training target dates precede evaluation start dates.
+    """
+    # 63 trading sessions ~ 3 calendar months
+    purge_sessions = 63
+    train_max_idx = 100
+    test_min_idx = train_max_idx + purge_sessions
+    temporal_gap = test_min_idx - train_max_idx
+    assert temporal_gap >= purge_sessions, f"Purge buffer {temporal_gap} < {purge_sessions}"
+

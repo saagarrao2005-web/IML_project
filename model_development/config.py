@@ -51,11 +51,14 @@ BEST_MODEL_PATH = MODELS_DIR / "best_model.joblib"
 # 2. EXPERIMENT PARAMETERS
 # ==============================================================================
 
-# Target horizon: 5 trading sessions ahead (observation t+5 vs observation t)
+# Task A: 5-trading-session directional classification
 HORIZON_SESSIONS = 5
-
-# Purging/embargo buffer to eliminate label leakage from overlapping forward windows
 PURGE_SESSIONS = 5
+
+# Task B: 3-month (63 trading sessions) continuous-return regression
+HORIZON_REGRESSION_SESSIONS = 63
+PURGE_REGRESSION_SESSIONS = 63
+SAMPLING_REGRESSION_STEP = 21  # Monthly sampling interval (~21 trading sessions per month)
 
 # Deterministic random seed
 RANDOM_STATE = 42
@@ -169,7 +172,7 @@ VERIFIED_MARKET_MOVES = [
 # 4. FEATURE DEFINITIONS
 # ==============================================================================
 
-# Predictor features strictly available at close of session t
+# Predictor features strictly available at close of session t (Market-only subset)
 FEATURE_COLUMNS = [
     # Historical multi-horizon returns
     "return_1d",
@@ -200,6 +203,22 @@ FEATURE_COLUMNS = [
     "month",
 ]
 
+# Market-only feature subset alias
+MARKET_FEATURES = FEATURE_COLUMNS.copy()
+
+# Formal schema for fundamental features when point-in-time filings are ingested
+FUNDAMENTAL_FEATURES = [
+    "pe_ratio",
+    "pb_ratio",
+    "eps_growth_yoy",
+    "net_profit_margin",
+    "debt_to_equity",
+    "return_on_equity",
+]
+
+# Combined feature subset
+COMBINED_FEATURES = MARKET_FEATURES + FUNDAMENTAL_FEATURES
+
 # Non-predictor metadata columns
 METADATA_COLUMNS = [
     "Symbol",
@@ -219,4 +238,6 @@ METADATA_COLUMNS = [
     "future_adj_close_5d",
     "future_return_5d",
     "target_up_5d",
+    "future_adj_close_63d",
+    "future_return_63d",
 ]
