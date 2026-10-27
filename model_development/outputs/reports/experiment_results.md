@@ -23,7 +23,7 @@ All experiments were executed using expanding-window walk-forward cross-validati
 2. **Task B (63-Trading-Session Continuous-Return Regression):**
    - **Baseline:** The naive Zero-Return Baseline achieved the lowest MAE (**0.1256 ± 0.0430**) and positive out-of-sample $R^2$ (+0.0807 vs. training mean).
    - **ML Performance:** All complex ML regressors (Ridge Regression, Random Forest Regressor, HistGradientBoosting Regressor) exhibited **negative out-of-sample $R^2$** relative to the historical training mean (Random Forest: -0.0320, Ridge: -0.0467, HistGBR: -0.0561).
-   - **Econometric Reality:** This is a mathematically honest null result consistent with the Weak-Form Efficient Market Hypothesis (EMH). Conditioning on lagged technical indicators alone over a 3-month horizon cannot reliably outperform zero or the historical unconditional mean in mean squared error.
+   - **Empirical Reality:** Within this specific universe of 16 NSE equities and across this 4-year window, the 20 lagged technical features evaluated by these three regression architectures failed to generate predictive signal superior to naive zero or unconditional mean baselines in terms of out-of-sample $R^2$. While consistent with weak-form market efficiency under the joint hypothesis problem, this reflects a failure of this specific technical feature set and model family to extract 3-month continuous return alpha, rather than a universal proof of market efficiency.
 
 3. **Fundamental Feature Track Status:**
    - **Status:** **BLOCKED**. Zero financial filings exist in the workspace. No synthetic or fabricated fundamental values were introduced.
@@ -71,6 +71,24 @@ Both tasks evaluate across 3 expanding folds on the development partition using 
 
 ### Fold-by-Fold Detailed Breakdown
 
+| Fold | Model | Train / Val Dates | Train / Val Rows | ROC-AUC | Balanced Acc | Precision | Recall | F1 Score | Confusion Matrix [TN, FP, FN, TP] |
+| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **1** | Majority Class | 2021-10-25..2023-12-04 / 2023-12-12..2024-07-23 | 8,384 / 2,432 | 0.5000 | 0.5000 | 0.5761 | 1.0000 | 0.7310 | [0, 1031, 0, 1401] |
+| **1** | Logistic Regression | 2021-10-25..2023-12-04 / 2023-12-12..2024-07-23 | 8,384 / 2,432 | 0.5183 | 0.5026 | 0.5803 | 0.2991 | 0.3947 | [728, 303, 982, 419] |
+| **1** | Random Forest | 2021-10-25..2023-12-04 / 2023-12-12..2024-07-23 | 8,384 / 2,432 | 0.5139 | 0.5043 | 0.5811 | 0.4218 | 0.4888 | [605, 426, 810, 591] |
+| **1** | HistGradientBoosting | 2021-10-25..2023-12-04 / 2023-12-12..2024-07-23 | 8,384 / 2,432 | 0.5205 | 0.5164 | 0.5963 | 0.4111 | 0.4867 | [641, 390, 825, 576] |
+| **1** | XGBoost | 2021-10-25..2023-12-04 / 2023-12-12..2024-07-23 | 8,384 / 2,432 | 0.5209 | 0.5098 | 0.5848 | 0.5560 | 0.5701 | [478, 553, 622, 779] |
+| **2** | Majority Class | 2021-10-25..2024-07-23 / 2024-07-31..2025-03-07 | 10,896 / 2,448 | 0.5000 | 0.5000 | 0.4624 | 1.0000 | 0.6324 | [0, 1316, 0, 1132] |
+| **2** | Logistic Regression | 2021-10-25..2024-07-23 / 2024-07-31..2025-03-07 | 10,896 / 2,448 | 0.5359 | 0.5328 | 0.4872 | 0.6917 | 0.5717 | [492, 824, 349, 783] |
+| **2** | Random Forest | 2021-10-25..2024-07-23 / 2024-07-31..2025-03-07 | 10,896 / 2,448 | 0.5078 | 0.5031 | 0.4652 | 0.5495 | 0.5038 | [601, 715, 510, 622] |
+| **2** | HistGradientBoosting | 2021-10-25..2024-07-23 / 2024-07-31..2025-03-07 | 10,896 / 2,448 | 0.5231 | 0.5224 | 0.4830 | 0.5654 | 0.5210 | [631, 685, 492, 640] |
+| **2** | XGBoost | 2021-10-25..2024-07-23 / 2024-07-31..2025-03-07 | 10,896 / 2,448 | 0.5198 | 0.5149 | 0.4711 | 0.8648 | 0.6100 | [217, 1099, 153, 979] |
+| **3** | Majority Class | 2021-10-25..2025-03-07 / 2025-03-18..2026-01-13 | 13,424 / 3,280 | 0.5000 | 0.5000 | 0.5335 | 1.0000 | 0.6958 | [0, 1530, 0, 1750] |
+| **3** | Logistic Regression | 2021-10-25..2025-03-07 / 2025-03-18..2026-01-13 | 13,424 / 3,280 | 0.5133 | 0.5069 | 0.5391 | 0.6263 | 0.5794 | [593, 937, 654, 1096] |
+| **3** | Random Forest | 2021-10-25..2025-03-07 / 2025-03-18..2026-01-13 | 13,424 / 3,280 | 0.5037 | 0.5040 | 0.5364 | 0.7074 | 0.6102 | [460, 1070, 512, 1238] |
+| **3** | HistGradientBoosting | 2021-10-25..2025-03-07 / 2025-03-18..2026-01-13 | 13,424 / 3,280 | 0.5035 | 0.4982 | 0.5321 | 0.6109 | 0.5688 | [590, 940, 681, 1069] |
+| **3** | XGBoost | 2021-10-25..2025-03-07 / 2025-03-18..2026-01-13 | 13,424 / 3,280 | 0.5056 | 0.5084 | 0.5385 | 0.8509 | 0.6596 | [254, 1276, 261, 1489] |
+
 | Fold | Model | Train / Val Rows | ROC-AUC | Balanced Acc | Precision | Recall | F1 Score | Confusion Matrix [TN, FP, FN, TP] |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **1** | Majority Class | 8,392 / 2,432 | 0.5000 | 0.5000 | 0.5761 | 1.0000 | 0.7310 | [0, 1031, 0, 1401] |
@@ -116,23 +134,23 @@ For **Logistic Regression**:
 
 ### Fold-by-Fold Detailed Breakdown
 
-| Fold | Model | Train / Val Rows | MAE | RMSE | OOS $R^2$ (Mean) | Directional Acc | Mean Rank IC | Rank IC $t$-stat |
-| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **1** | Zero Return Baseline | 8,000 / 1,424 | 0.1689 | 0.2580 | -0.2010 | 0.4579 | 0.0000 | 0.00 |
-| **1** | Training Mean Baseline | 8,000 / 1,424 | 0.1552 | 0.2355 | 0.0000 | 0.5421 | 0.0000 | 0.00 |
-| **1** | Ridge Regression | 8,000 / 1,424 | 0.1599 | 0.2434 | -0.0689 | 0.5147 | +0.0018 | +0.06 |
-| **1** | Random Forest Regressor | 8,000 / 1,424 | 0.1583 | 0.2413 | -0.0500 | 0.5169 | +0.0535 | +2.16 |
-| **1** | HistGradientBoosting | 8,000 / 1,424 | 0.1595 | 0.2474 | -0.1040 | 0.5239 | +0.0251 | +0.97 |
-| **2** | Zero Return Baseline | 10,400 / 1,424 | 0.1248 | 0.1662 | +0.4140 | 0.5267 | 0.0000 | 0.00 |
-| **2** | Training Mean Baseline | 10,400 / 1,424 | 0.1792 | 0.2170 | 0.0000 | 0.4733 | 0.0000 | 0.00 |
-| **2** | Ridge Regression | 10,400 / 1,424 | 0.1837 | 0.2246 | -0.0711 | 0.4375 | -0.0934 | -3.60 |
-| **2** | Random Forest Regressor | 10,400 / 1,424 | 0.1782 | 0.2214 | -0.0403 | 0.4775 | -0.1337 | -5.58 |
-| **2** | HistGradientBoosting | 10,400 / 1,424 | 0.1765 | 0.2210 | -0.0369 | 0.4789 | -0.0318 | -1.19 |
-| **3** | Zero Return Baseline | 12,800 / 2,128 | 0.0830 | 0.1092 | +0.0292 | 0.4962 | 0.0000 | 0.00 |
-| **3** | Training Mean Baseline | 12,800 / 2,128 | 0.0873 | 0.1108 | 0.0000 | 0.5038 | 0.0000 | 0.00 |
-| **3** | Ridge Regression | 12,800 / 2,128 | 0.0883 | 0.1108 | -0.0002 | 0.5160 | -0.0726 | -3.00 |
-| **3** | Random Forest Regressor | 12,800 / 2,128 | 0.0879 | 0.1111 | -0.0057 | 0.5117 | +0.0462 | +2.40 |
-| **3** | HistGradientBoosting | 12,800 / 2,128 | 0.0894 | 0.1123 | -0.0274 | 0.5470 | +0.0772 | +4.07 |
+| Fold | Model | Train / Val Dates | Train / Val Rows | MAE | RMSE | OOS ^2$ (Mean) | Directional Acc | Mean Rank IC | Rank IC $-stat |
+| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **1** | Zero Return Baseline | 2021-10-25..2023-10-30 / 2024-01-31..2024-06-06 | 8,000 / 1,392 | 0.1689 | 0.2580 | -0.2010 | 0.4579 | 0.0000 | 0.00 |
+| **1** | Training Mean Baseline | 2021-10-25..2023-10-30 / 2024-01-31..2024-06-06 | 8,000 / 1,392 | 0.1552 | 0.2355 | 0.0000 | 0.5421 | 0.0000 | 0.00 |
+| **1** | Ridge Regression | 2021-10-25..2023-10-30 / 2024-01-31..2024-06-06 | 8,000 / 1,392 | 0.1599 | 0.2434 | -0.0689 | 0.5147 | +0.0018 | +0.06 |
+| **1** | Random Forest Regressor | 2021-10-25..2023-10-30 / 2024-01-31..2024-06-06 | 8,000 / 1,392 | 0.1583 | 0.2413 | -0.0500 | 0.5169 | +0.0535 | +2.16 |
+| **1** | HistGradientBoosting | 2021-10-25..2023-10-30 / 2024-01-31..2024-06-06 | 8,000 / 1,392 | 0.1595 | 0.2474 | -0.1040 | 0.5239 | +0.0251 | +0.97 |
+| **2** | Zero Return Baseline | 2021-10-25..2024-06-06 / 2024-09-09..2025-01-13 | 10,400 / 1,392 | 0.1248 | 0.1662 | +0.4140 | 0.5267 | 0.0000 | 0.00 |
+| **2** | Training Mean Baseline | 2021-10-25..2024-06-06 / 2024-09-09..2025-01-13 | 10,400 / 1,392 | 0.1792 | 0.2170 | 0.0000 | 0.4733 | 0.0000 | 0.00 |
+| **2** | Ridge Regression | 2021-10-25..2024-06-06 / 2024-09-09..2025-01-13 | 10,400 / 1,392 | 0.1837 | 0.2246 | -0.0711 | 0.4375 | -0.0934 | -3.60 |
+| **2** | Random Forest Regressor | 2021-10-25..2024-06-06 / 2024-09-09..2025-01-13 | 10,400 / 1,392 | 0.1782 | 0.2214 | -0.0403 | 0.4775 | -0.1337 | -5.58 |
+| **2** | HistGradientBoosting | 2021-10-25..2024-06-06 / 2024-09-09..2025-01-13 | 10,400 / 1,392 | 0.1765 | 0.2210 | -0.0369 | 0.4789 | -0.0318 | -1.19 |
+| **3** | Zero Return Baseline | 2021-10-25..2025-01-13 / 2025-04-17..2025-11-03 | 12,800 / 2,192 | 0.0830 | 0.1092 | +0.0292 | 0.4962 | 0.0000 | 0.00 |
+| **3** | Training Mean Baseline | 2021-10-25..2025-01-13 / 2025-04-17..2025-11-03 | 12,800 / 2,192 | 0.0873 | 0.1108 | 0.0000 | 0.5038 | 0.0000 | 0.00 |
+| **3** | Ridge Regression | 2021-10-25..2025-01-13 / 2025-04-17..2025-11-03 | 12,800 / 2,192 | 0.0883 | 0.1108 | -0.0002 | 0.5160 | -0.0726 | -3.00 |
+| **3** | Random Forest Regressor | 2021-10-25..2025-01-13 / 2025-04-17..2025-11-03 | 12,800 / 2,192 | 0.0879 | 0.1111 | -0.0057 | 0.5117 | +0.0462 | +2.40 |
+| **3** | HistGradientBoosting | 2021-10-25..2025-01-13 / 2025-04-17..2025-11-03 | 12,800 / 2,192 | 0.0894 | 0.1123 | -0.0274 | 0.5470 | +0.0772 | +4.07 |
 
 ---
 
@@ -145,7 +163,7 @@ Financial asset return time series exhibit an extremely low signal-to-noise rati
 In financial econometrics:
 $$\text{OOS } R^2 = 1 - \frac{\sum (y_i - \hat{y}_i)^2}{\sum (y_i - \bar{y}_{\text{train}})^2}$$
 A negative OOS $R^2$ means that the conditional model predictions $\hat{y}_i$ produced higher mean squared error than simply guessing the unconditional historical mean $\bar{y}_{\text{train}}$. 
-This is consistent with the **Weak-Form Efficient Market Hypothesis**: historical technical indicators (moving average ratios, past returns, RSI) over 1-50 days have near-zero predictive power for continuous price returns 63 sessions (3 months) into the future. Furthermore, in regime shifts (e.g. Fold 2), market momentum frequently reverses, causing momentum-based regressors to experience severe prediction penalties.
+**Econometric Interpretation & Limitations:** Within this specific universe of 16 NSE equities and across this 4-year sample, the 20 lagged technical features evaluated by these three regression architectures (Ridge, Random Forest, HistGradientBoosting) failed to generate predictive signal superior to naive zero or unconditional mean baselines in terms of out-of-sample ^2$. While consistent with weak-form market efficiency under the joint hypothesis problem, this is specifically an empirical failure of this feature set and model family to extract 3-month predictive alpha, rather than a universal proof of market efficiency. In regime shifts (e.g. Fold 2), market momentum frequently reverses, causing momentum-based regressors to experience severe prediction penalties.
 
 ---
 

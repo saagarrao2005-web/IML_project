@@ -463,3 +463,206 @@ def test_purge_window_task_b_sufficiency():
     temporal_gap = test_min_idx - train_max_idx
     assert temporal_gap >= purge_sessions, f"Purge buffer {temporal_gap} < {purge_sessions}"
 
+
+# ==============================================================================
+# INDEPENDENT AUDIT REGRESSION TESTS (AUDITOR VERIFICATION SUITE)
+# ==============================================================================
+
+def test_audit_task_a_recalculation_reconciliation():
+    """
+    Independent audit test: Recalculates all classification metrics directly from
+    saved per-observation development predictions and reconciles against fold results.
+    """
+    from sklearn.metrics import (
+        accuracy_score, balanced_accuracy_score, precision_score, recall_score,
+        f1_score, roc_auc_score, confusion_matrix
+    )
+    from config import PREDICTIONS_DIR, REPORTS_DIR
+
+    preds_path = PREDICTIONS_DIR / "development_classification_predictions.csv"
+    results_path = REPORTS_DIR / "walk_forward_classification_results.csv"
+
+    if not preds_path.exists() or not results_path.exists():
+        pytest.skip("Task A development artifacts not yet generated.")
+
+    cls_preds = pd.read_csv(preds_path)
+    wf_results = pd.read_csv(results_path)
+
+    assert len(cls_preds) == 8160, f"Expected 8160 OOS classification rows, got {len(cls_preds)}"
+    assert cls_preds.duplicated(subset=["fold", "Date", "Symbol"]).sum() == 0, "Duplicate keys found in predictions"
+
+    models = ["Majority_Class_Baseline", "Logistic_Regression", "Random_Forest", "Hist_Gradient_Boosting", "XGBoost"]
+
+    for fold in [1, 2, 3]:
+        sub = cls_preds[cls_preds["fold"] == fold]
+        y_true = sub["actual"].to_numpy()
+
+        for m in models:
+            pred_col = f"{m}_pred"
+            prob_col = f"{m}_prob"
+            y_pred = sub[pred_col].to_numpy()
+            y_prob = sub[prob_col].to_numpy() if prob_col in sub.columns else None
+
+            acc = accuracy_score(y_true, y_pred)
+            bal_acc = balanced_accuracy_score(y_true, y_pred)
+            prec = precision_score(y_true, y_pred, zero_division=0)
+            rec = recall_score(y_true, y_pred, zero_division=0)
+            f1 = f1_score(y_true, y_pred, zero_division=0)
+            cm = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
+            auc = roc_auc_score(y_true, y_prob) if (y_prob is not None and len(np.unique(y_true)) > 1) else 0.5
+
+            ref = wf_results[(wf_results["fold"] == fold) & (wf_results["model"] == m)].iloc[0]
+
+            assert np.isclose(acc, ref["accuracy"]), f"Accuracy mismatch {m} fold {fold}"
+            assert np.isclose(bal_acc, ref["balanced_accuracy"]), f"BalAcc mismatch {m} fold {fold}"
+            assert np.isclose(prec, ref["precision"]), f"Precision mismatch {m} fold {fold}"
+            assert np.isclose(rec, ref["recall"]), f"Recall mismatch {m} fold {fold}"
+            assert np.isclose(f1, ref["f1"]), f"F1 mismatch {m} fold {fold}"
+            assert np.isclose(auc, ref["roc_auc"]), f"ROC-AUC mismatch {m} fold {fold}"
+            assert cm[0] == ref["tn"] and cm[1] == ref["fp"] and cm[2] == ref["fn"] and cm[3] == ref["tp"], (
+                f"Confusion matrix mismatch {m} fold {fold}"
+            )
+
+
+def test_audit_task_b_recalculation_reconciliation():
+    """
+    Independent audit test: Recalculates all regression metrics directly from
+    saved per-observation development predictions and reconciles against fold results.
+    """
+    from sklearn.metrics import mean_absolute_error, root_mean_squared_error, accuracy_score
+    from scipy.stats import spearmanr
+    from config import PREDICTIONS_DIR, REPORTS_DIR, ANALYTICAL_DATASET_PATH, WALK_FORWARD_SPECS, HOLDOUT_FRACTION
+
+    preds_path = PREDICTIONS_DIR / "development_regression_predictions.csv"
+    results_path = REPORTS_DIR / "walk_forward_regression_results.csv"
+
+    if not preds_path.exists() or not results_path.exists():
+        pytest.skip("Task B development artifacts not yet generated.")
+
+    reg_preds = pd.read_csv(preds_path)
+    wf_results = pd.read_csv(results_path)
+
+    assert len(reg_preds) == 4976, f"Expected 4976 OOS regression rows, got {len(reg_preds)}"
+    assert reg_preds.duplicated(subset=["fold", "Date", "Symbol"]).sum() == 0, "Duplicate keys found in predictions"
+
+    # Compute training means per fold to reconcile R2
+    analytical = pd.read_csv(ANALYTICAL_DATASET_PATH, parse_dates=["Date"])
+    labeled = analytical.dropna(subset=["future_return_63d"]).sort_values(["Date", "Symbol"]).reset_index(drop=True)
+    dates = np.array(sorted(labeled["Date"].unique()))
+    dev_dates = dates[:int(len(dates) * (1.0 - HOLDOUT_FRACTION))]
+    dev_data = labeled[labeled["Date"].isin(dev_dates)]
+    n_dev = len(dev_dates)
+
+    train_means = {}
+    for fold_idx, (tr_pct, vl_pct) in enumerate(WALK_FORWARD_SPECS, 1):
+        tr_end = int(n_dev * tr_pct)
+        tr_fold = dev_data[dev_data["Date"].isin(dev_dates[:tr_end])]
+        train_means[fold_idx] = float(tr_fold["future_return_63d"].mean())
+
+    models = ["Zero_Return_Baseline", "Training_Mean_Baseline", "Ridge_Regression", "Random_Forest_Regressor", "Hist_Gradient_Boosting_Regressor"]
+
+    for fold in [1, 2, 3]:
+        sub = reg_preds[reg_preds["fold"] == fold]
+        y_true = sub["actual"].to_numpy()
+        tr_mean = train_means[fold]
+
+        for m in models:
+            pred_col = f"{m}_pred"
+            y_pred = sub[pred_col].to_numpy()
+
+            mae = mean_absolute_error(y_true, y_pred)
+            rmse = root_mean_squared_error(y_true, y_pred)
+
+            ss_res = np.sum((y_true - y_pred) ** 2)
+            ss_tot_mean = np.sum((y_true - tr_mean) ** 2)
+            ss_tot_zero = np.sum(y_true ** 2)
+            r2_mean = 1.0 - (ss_res / ss_tot_mean)
+            r2_zero = 1.0 - (ss_res / ss_tot_zero)
+
+            dir_acc = accuracy_score((y_true > 0).astype(int), (y_pred > 0).astype(int))
+
+            date_ics = []
+            for dt, grp in sub.groupby("Date"):
+                if len(grp) >= 3 and grp[pred_col].std() > 1e-9 and grp["actual"].std() > 1e-9:
+                    rho, _ = spearmanr(grp[pred_col], grp["actual"])
+                    if not np.isnan(rho):
+                        date_ics.append(rho)
+            mean_ic = float(np.mean(date_ics)) if date_ics else 0.0
+
+            ref = wf_results[(wf_results["fold"] == fold) & (wf_results["model"] == m)].iloc[0]
+
+            assert np.isclose(mae, ref["mae"]), f"MAE mismatch {m} fold {fold}"
+            assert np.isclose(rmse, ref["rmse"]), f"RMSE mismatch {m} fold {fold}"
+            assert np.isclose(r2_mean, ref["r2_vs_train_mean"]), f"R2 mean mismatch {m} fold {fold}"
+            assert np.isclose(r2_zero, ref["r2_vs_zero"]), f"R2 zero mismatch {m} fold {fold}"
+            assert np.isclose(dir_acc, ref["directional_accuracy"]), f"DirAcc mismatch {m} fold {fold}"
+            assert np.isclose(mean_ic, ref["mean_rank_ic"], atol=1e-5), f"Rank IC mismatch {m} fold {fold}"
+
+
+def test_audit_no_temporal_label_overlap_in_walk_forward():
+    """
+    Independent audit test: Confirms that across all stocks and folds,
+    training target realization strictly precedes validation observation start.
+    """
+    from config import ANALYTICAL_DATASET_PATH, WALK_FORWARD_SPECS, PURGE_SESSIONS, PURGE_REGRESSION_SESSIONS, HOLDOUT_FRACTION
+
+    df = pd.read_csv(ANALYTICAL_DATASET_PATH, parse_dates=["Date"])
+
+    for task, target_col, purge_s, h in [("Task A", "target_up_5d", PURGE_SESSIONS, 5), ("Task B", "future_return_63d", PURGE_REGRESSION_SESSIONS, 63)]:
+        labeled = df.dropna(subset=[target_col]).sort_values(["Date", "Symbol"]).reset_index(drop=True)
+        dates = np.array(sorted(labeled["Date"].unique()))
+        dev_dates = dates[:int(len(dates) * (1.0 - HOLDOUT_FRACTION))]
+        n_dev = len(dev_dates)
+
+        for fold_idx, (tr_pct, vl_pct) in enumerate(WALK_FORWARD_SPECS, 1):
+            tr_end = int(n_dev * tr_pct)
+            vl_start = tr_end + purge_s
+            vl_end = int(n_dev * vl_pct)
+
+            tr_dates = dev_dates[:tr_end]
+            vl_dates = dev_dates[vl_start:vl_end]
+
+            # Cross-stock validation: find latest future target date for any stock in train
+            tr_sub = labeled[labeled["Date"].isin(tr_dates)]
+            vl_sub = labeled[labeled["Date"].isin(vl_dates)]
+
+            tr_future_dates = []
+            for sym, grp in tr_sub.groupby("Symbol"):
+                max_d = grp["Date"].max()
+                sym_all = df[df["Symbol"] == sym].sort_values("Date").reset_index(drop=True)
+                d_idx = np.where(sym_all["Date"] == max_d)[0][0]
+                if d_idx + h < len(sym_all):
+                    tr_future_dates.append(sym_all.loc[d_idx + h, "Date"])
+
+            max_train_future = max(tr_future_dates)
+            min_val_date = vl_sub["Date"].min()
+
+            assert max_train_future < min_val_date, (
+                f"{task} Fold {fold_idx}: Train target realized {max_train_future} >= Val start {min_val_date}"
+            )
+
+
+def test_audit_artifact_completeness_and_holdout_protection():
+    """
+    Independent audit test: Confirms that model configs record holdout as un-evaluated
+    and that prediction files contain valid non-synthetic values.
+    """
+    import json
+    from config import REPORTS_DIR, PREDICTIONS_DIR
+
+    with open(REPORTS_DIR / "experiment_config_classification.json") as f:
+        cfg_cls = json.load(f)
+    with open(REPORTS_DIR / "experiment_config_regression.json") as f:
+        cfg_reg = json.load(f)
+
+    assert cfg_cls["holdout_period"]["evaluated"] is False, "Holdout was evaluated in Task A config!"
+    assert cfg_reg["holdout_period"]["evaluated"] is False, "Holdout was evaluated in Task B config!"
+
+    cls_preds = pd.read_csv(PREDICTIONS_DIR / "development_classification_predictions.csv")
+    assert cls_preds.isna().sum().sum() == 0, "NaNs found in classification predictions"
+
+    # Verify predictions are not degenerately constant
+    assert cls_preds["Logistic_Regression_pred"].nunique() == 2, "Logistic regression predictions degenerate"
+    assert cls_preds["Random_Forest_pred"].nunique() == 2, "Random forest predictions degenerate"
+
+
