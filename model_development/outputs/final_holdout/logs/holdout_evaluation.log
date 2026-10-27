@@ -1,0 +1,53 @@
+2026-10-27 22:18:47,848 [INFO] ================================================================================
+2026-10-27 22:18:47,848 [INFO] EXECUTING ONE-TIME FINAL HOLDOUT EVALUATION (NSE STOCK PREDICTION)
+2026-10-27 22:18:47,848 [INFO] ================================================================================
+2026-10-27 22:18:48,005 [INFO] Loaded analytical dataset: 19,840 total rows across 16 symbols.
+2026-10-27 22:18:48,005 [INFO] Found frozen classification candidate: D:\B.Tech\Sem3\IML\Project\Stock_Prediction\model_development\outputs\models\classification_best_dev_model.joblib
+2026-10-27 22:18:48,008 [INFO] Found frozen regression candidate:     D:\B.Tech\Sem3\IML\Project\Stock_Prediction\model_development\outputs\models\regression_best_dev_model.joblib
+2026-10-27 22:18:48,008 [INFO] 
+================================================================================
+2026-10-27 22:18:48,008 [INFO] TASK A: FINAL HOLDOUT EVALUATION (5-DAY DIRECTIONAL CLASSIFICATION)
+2026-10-27 22:18:48,008 [INFO] ================================================================================
+2026-10-27 22:18:48,038 [INFO] Task A Development rows: 16,784 (2021-10-25 to 2026-01-13)
+2026-10-27 22:18:48,038 [INFO] Task A Purge window:      5 trading sessions
+2026-10-27 22:18:48,038 [INFO] Task A Holdout rows:     2,896 (2026-01-22 to 2026-10-15)
+2026-10-27 22:18:48,040 [INFO] Task A Holdout class balance: Class 1 = 1,384 (47.79%), Class 0 = 1,512
+2026-10-27 22:18:48,041 [INFO] Loaded frozen Task A candidate: LogisticRegression
+2026-10-27 22:18:52,176 [INFO] Saved Task A holdout predictions to: D:\B.Tech\Sem3\IML\Project\Stock_Prediction\model_development\outputs\final_holdout\predictions\holdout_classification_predictions.csv
+2026-10-27 22:18:52,180 [INFO] Saved Task A holdout summary to: D:\B.Tech\Sem3\IML\Project\Stock_Prediction\model_development\outputs\final_holdout\reports\holdout_classification_summary.csv
+2026-10-27 22:18:52,289 [INFO] Saved Task A per-stock classification to: D:\B.Tech\Sem3\IML\Project\Stock_Prediction\model_development\outputs\final_holdout\reports\holdout_per_stock_classification.csv
+2026-10-27 22:18:52,289 [INFO] 
+Task A Holdout Evaluation Summary:
+2026-10-27 22:18:52,289 [INFO] Model                        | ROC-AUC   | Bal Acc   | Accuracy  | Precision | Recall    | F1        | Brier    
+2026-10-27 22:18:52,289 [INFO] ----------------------------------------------------------------------------------------------------------------
+2026-10-27 22:18:52,297 [INFO] Majority_Class_Baseline      | 0.5000    | 0.5000    | 0.4779    | 0.4779    | 1.0000    | 0.6467   | 0.5221
+2026-10-27 22:18:52,297 [INFO] Logistic_Regression          | 0.4644    | 0.4691    | 0.4713    | 0.4436    | 0.4176    | 0.4302   | 0.2526
+2026-10-27 22:18:52,297 [INFO] Random_Forest                | 0.5014    | 0.5011    | 0.4934    | 0.4787    | 0.6734    | 0.5596   | 0.2536
+2026-10-27 22:18:52,297 [INFO] Hist_Gradient_Boosting       | 0.5157    | 0.5179    | 0.5138    | 0.4930    | 0.6105    | 0.5455   | 0.2559
+2026-10-27 22:18:52,297 [INFO] XGBoost                      | 0.5063    | 0.4985    | 0.4838    | 0.4770    | 0.8316    | 0.6063   | 0.2576
+2026-10-27 22:18:52,297 [INFO] 
+================================================================================
+2026-10-27 22:18:52,297 [INFO] TASK B: FINAL HOLDOUT EVALUATION (63-DAY CONTINUOUS-RETURN REGRESSION)
+2026-10-27 22:18:52,297 [INFO] ================================================================================
+2026-10-27 22:18:52,318 [INFO] Task B Development rows: 16,000 (2021-10-25 to 2025-11-03)
+2026-10-27 22:18:52,318 [INFO] Task B Purge window:      63 trading sessions (~3 calendar months)
+2026-10-27 22:18:52,318 [INFO] Task B Holdout rows:     1,824 (2026-02-04 to 2026-07-23)
+2026-10-27 22:18:52,319 [INFO] Task B Development Mean: 0.054541 (+5.45%)
+2026-10-27 22:18:52,319 [INFO] Task B Holdout Mean:     0.044393 (+4.44%)
+2026-10-27 22:18:52,346 [INFO] Loaded frozen Task B candidate: RandomForestRegressor
+2026-10-27 22:18:53,172 [INFO] Saved Task B holdout predictions to: D:\B.Tech\Sem3\IML\Project\Stock_Prediction\model_development\outputs\final_holdout\predictions\holdout_regression_predictions.csv
+2026-10-27 22:18:53,177 [INFO] Saved Task B holdout summary to: D:\B.Tech\Sem3\IML\Project\Stock_Prediction\model_development\outputs\final_holdout\reports\holdout_regression_summary.csv
+2026-10-27 22:18:53,275 [INFO] Saved Task B per-stock regression to: D:\B.Tech\Sem3\IML\Project\Stock_Prediction\model_development\outputs\final_holdout\reports\holdout_per_stock_regression.csv
+2026-10-27 22:18:53,275 [INFO] 
+Task B Holdout Evaluation Summary:
+2026-10-27 22:18:53,275 [INFO] Model                            | MAE       | RMSE      | OOS R²(Mean) | OOS R²(Zero) | Dir Acc   | Rank IC   | t-stat 
+2026-10-27 22:18:53,276 [INFO] ------------------------------------------------------------------------------------------------------------------------
+2026-10-27 22:18:53,276 [INFO] Zero_Return_Baseline             | 0.1234    | 0.1771    |      -0.0633 |       0.0000 | 0.4556    | 0.0000    |   0.00
+2026-10-27 22:18:53,276 [INFO] Training_Mean_Baseline           | 0.1268    | 0.1717    |       0.0000 |       0.0596 | 0.5444    | 0.0000    |   0.00
+2026-10-27 22:18:53,277 [INFO] Ridge_Regression                 | 0.1262    | 0.1690    |       0.0311 |       0.0888 | 0.5439    | 0.0904    |   3.10
+2026-10-27 22:18:53,277 [INFO] Random_Forest_Regressor          | 0.1255    | 0.1655    |       0.0714 |       0.1268 | 0.5444    | 0.1319    |   5.31
+2026-10-27 22:18:53,277 [INFO] Hist_Gradient_Boosting_Regressor | 0.1257    | 0.1660    |       0.0654 |       0.1211 | 0.5439    | 0.1014    |   4.49
+2026-10-27 22:18:53,280 [INFO] 
+Saved final holdout metadata JSON to: D:\B.Tech\Sem3\IML\Project\Stock_Prediction\model_development\outputs\final_holdout\reports\final_holdout_metadata.json
+2026-10-27 22:18:53,280 [INFO] 
+Final holdout evaluation completed successfully.

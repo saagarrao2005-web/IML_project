@@ -1,0 +1,265 @@
+{
+  "execution_timestamp": "2026-10-27T22:18:53.277905",
+  "holdout_evaluated_status": true,
+  "task_a": {
+    "target": "target_up_5d",
+    "horizon_sessions": 5,
+    "purge_sessions": 5,
+    "n_holdout_dates": 181,
+    "holdout_date_range": [
+      "2026-01-22",
+      "2026-10-15"
+    ],
+    "n_holdout_rows": 2896,
+    "candidate_model": "Logistic_Regression",
+    "candidate_artifact": "D:\\B.Tech\\Sem3\\IML\\Project\\Stock_Prediction\\model_development\\outputs\\models\\classification_best_dev_model.joblib",
+    "summary_metrics": [
+      {
+        "accuracy": 0.47790055248618785,
+        "balanced_accuracy": 0.5,
+        "precision": 0.47790055248618785,
+        "recall": 1.0,
+        "f1": 0.6467289719626168,
+        "tn": 0,
+        "fp": 1512,
+        "fn": 0,
+        "tp": 1384,
+        "confusion_matrix": [
+          [
+            0,
+            1512
+          ],
+          [
+            0,
+            1384
+          ]
+        ],
+        "roc_auc": 0.5,
+        "pr_auc": 0.47790055248618785,
+        "brier_score": 0.5220994475138122,
+        "model": "Majority_Class_Baseline",
+        "sample_size": 2896,
+        "class_1_count": 1384,
+        "class_0_count": 1512,
+        "candidate_status": "COMPARATOR"
+      },
+      {
+        "accuracy": 0.4713397790055249,
+        "balanced_accuracy": 0.4690663516530569,
+        "precision": 0.44359171143514964,
+        "recall": 0.41763005780346824,
+        "f1": 0.43021957573502045,
+        "tn": 787,
+        "fp": 725,
+        "fn": 806,
+        "tp": 578,
+        "confusion_matrix": [
+          [
+            787,
+            725
+          ],
+          [
+            806,
+            578
+          ]
+        ],
+        "roc_auc": 0.46437937731290335,
+        "pr_auc": 0.45856469456286386,
+        "brier_score": 0.2525708682302605,
+        "model": "Logistic_Regression",
+        "sample_size": 2896,
+        "class_1_count": 1384,
+        "class_0_count": 1512,
+        "candidate_status": "CHAMPION"
+      },
+      {
+        "accuracy": 0.493439226519337,
+        "balanced_accuracy": 0.5010570541639906,
+        "precision": 0.4786851566512583,
+        "recall": 0.6734104046242775,
+        "f1": 0.5595917141999399,
+        "tn": 497,
+        "fp": 1015,
+        "fn": 452,
+        "tp": 932,
+        "confusion_matrix": [
+          [
+            497,
+            1015
+          ],
+          [
+            452,
+            932
+          ]
+        ],
+        "roc_auc": 0.5013762730525737,
+        "pr_auc": 0.48677216602787765,
+        "brier_score": 0.2535592647796044,
+        "model": "Random_Forest",
+        "sample_size": 2896,
+        "class_1_count": 1384,
+        "class_0_count": 1512,
+        "candidate_status": "COMPARATOR"
+      },
+      {
+        "accuracy": 0.5138121546961326,
+        "balanced_accuracy": 0.5179068416062635,
+        "precision": 0.49299883313885645,
+        "recall": 0.6105491329479769,
+        "f1": 0.5455132343447385,
+        "tn": 643,
+        "fp": 869,
+        "fn": 539,
+        "tp": 845,
+        "confusion_matrix": [
+          [
+            643,
+            869
+          ],
+          [
+            539,
+            845
+          ]
+        ],
+        "roc_auc": 0.5156727872587699,
+        "pr_auc": 0.49570618314907106,
+        "brier_score": 0.2559232956538654,
+        "model": "Hist_Gradient_Boosting",
+        "sample_size": 2896,
+        "class_1_count": 1384,
+        "class_0_count": 1512,
+        "candidate_status": "COMPARATOR"
+      },
+      {
+        "accuracy": 0.4837707182320442,
+        "balanced_accuracy": 0.498495657093923,
+        "precision": 0.4769995855781185,
+        "recall": 0.8316473988439307,
+        "f1": 0.6062681063997893,
+        "tn": 250,
+        "fp": 1262,
+        "fn": 233,
+        "tp": 1151,
+        "confusion_matrix": [
+          [
+            250,
+            1262
+          ],
+          [
+            233,
+            1151
+          ]
+        ],
+        "roc_auc": 0.5063095907116861,
+        "pr_auc": 0.48979830509780464,
+        "brier_score": 0.2575669586658478,
+        "model": "XGBoost",
+        "sample_size": 2896,
+        "class_1_count": 1384,
+        "class_0_count": 1512,
+        "candidate_status": "COMPARATOR"
+      }
+    ]
+  },
+  "task_b": {
+    "target": "future_return_63d",
+    "horizon_sessions": 63,
+    "purge_sessions": 63,
+    "n_holdout_dates": 114,
+    "holdout_date_range": [
+      "2026-02-04",
+      "2026-07-23"
+    ],
+    "n_holdout_rows": 1824,
+    "dev_mean": 0.0545410311856735,
+    "candidate_model": "Random_Forest_Regressor",
+    "candidate_artifact": "D:\\B.Tech\\Sem3\\IML\\Project\\Stock_Prediction\\model_development\\outputs\\models\\regression_best_dev_model.joblib",
+    "summary_metrics": [
+      {
+        "mae": 0.1233822297974933,
+        "rmse": 0.17707030136932478,
+        "r2_vs_train_mean": -0.06334502751186655,
+        "r2_vs_zero": 0.0,
+        "directional_accuracy": 0.4555921052631579,
+        "directional_auc": 0.5,
+        "mean_rank_ic": 0.0,
+        "rank_ic_t_stat": 0.0,
+        "model": "Zero_Return_Baseline",
+        "sample_size": 1824,
+        "candidate_status": "BENCHMARK"
+      },
+      {
+        "mae": 0.12676782905306003,
+        "rmse": 0.17171515419430944,
+        "r2_vs_train_mean": 0.0,
+        "r2_vs_zero": 0.05957147103992044,
+        "directional_accuracy": 0.5444078947368421,
+        "directional_auc": 0.5,
+        "mean_rank_ic": 0.0,
+        "rank_ic_t_stat": 0.0,
+        "model": "Training_Mean_Baseline",
+        "sample_size": 1824,
+        "candidate_status": "BENCHMARK"
+      },
+      {
+        "mae": 0.12618991020210285,
+        "rmse": 0.16902433682228513,
+        "r2_vs_train_mean": 0.031094920072012533,
+        "r2_vs_zero": 0.08881402098137436,
+        "directional_accuracy": 0.543859649122807,
+        "directional_auc": 0.5849102562704274,
+        "mean_rank_ic": 0.09042827657378741,
+        "rank_ic_t_stat": 3.098515081126632,
+        "model": "Ridge_Regression",
+        "sample_size": 1824,
+        "candidate_status": "COMPARATOR"
+      },
+      {
+        "mae": 0.12548280868022604,
+        "rmse": 0.1654676354293271,
+        "r2_vs_train_mean": 0.0714423481301012,
+        "r2_vs_zero": 0.12675789339736543,
+        "directional_accuracy": 0.5444078947368421,
+        "directional_auc": 0.642402957889341,
+        "mean_rank_ic": 0.1319401444788442,
+        "rank_ic_t_stat": 5.311616189406967,
+        "model": "Random_Forest_Regressor",
+        "sample_size": 1824,
+        "candidate_status": "CHAMPION"
+      },
+      {
+        "mae": 0.12572997800323235,
+        "rmse": 0.16600431280584307,
+        "r2_vs_train_mean": 0.06540921622454343,
+        "r2_vs_zero": 0.12108416403439959,
+        "directional_accuracy": 0.543859649122807,
+        "directional_auc": 0.6298930055514959,
+        "mean_rank_ic": 0.10138107710018333,
+        "rank_ic_t_stat": 4.488188302956486,
+        "model": "Hist_Gradient_Boosting_Regressor",
+        "sample_size": 1824,
+        "candidate_status": "COMPARATOR"
+      }
+    ]
+  },
+  "universe_symbols": [
+    "ABB",
+    "ADANIGREEN",
+    "APOLLOHOSP",
+    "HDFCBANK",
+    "INFY",
+    "MARUTI",
+    "MOTILALOFS",
+    "POWERINDIA",
+    "RELIANCE",
+    "SBIN",
+    "SIEMENS",
+    "SOLARINDS",
+    "TCS",
+    "TITAN",
+    "ULTRACEMCO",
+    "YESBANK"
+  ],
+  "n_symbols": 16,
+  "random_state": 42
+}
