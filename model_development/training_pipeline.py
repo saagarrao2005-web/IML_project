@@ -14,8 +14,10 @@ Implements:
 """
 
 from pathlib import Path
+import argparse
 import json
 import warnings
+import joblib
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
@@ -327,6 +329,172 @@ def resolve_feature_subset(df: pd.DataFrame, subset_name: str) -> tuple[list, st
 # SYNTHETIC SMOKE TEST FIXTURE (PHASE 6 VERIFICATION)
 # ==============================================================================
 
+# ==============================================================================
+# FORMAL EXPERIMENT EXECUTION ENGINE
+# ==============================================================================
+
+def run_training_experiment(
+    task: str = "classification",
+    feature_subset: str = "market",
+    evaluate_holdout: bool = False,
+    data_path: Path = ANALYTICAL_DATASET_PATH,
+) -> dict:
+    """
+    Executes a formal, leakage-free training experiment.
+
+    Parameters:
+    - task: 'classification' (Task A, 5d direction) or 'regression' (Task B, 63d continuous return)
+    - feature_subset: 'market', 'fundamentals', or 'combined'
+    - evaluate_holdout: If False, keeps the final 15% holdout untouched.
+    - data_path: Path to the prepared analytical dataset.
+    """
+    print("=" * 76)
+    print(f"EXECUTING TRAINING EXPERIMENT: Task={task.upper()}, Subset={feature_subset.upper()}")
+    print("=" * 76)
+
+    if not data_path.exists():
+        raise FileNotFoundError(f"Analytical dataset not found at: {data_path}. Run data_pipeline.py first.")
+
+    df = pd.read_csv(data_path, parse_dates=["Date"])
+    df = df.sort_values(["Date", "Symbol"]).reset_index(drop=True)
+
+    # Resolve features
+    features, subset_status = resolve_feature_subset(df, feature_subset)
+    if subset_status != "OK":
+        print(f"\n[BLOCKED] {subset_status}")
+        return {"status": "BLOCKED", "reason": subset_status}
+
+    # Task configuration
+    if task == "classification":
+        target_col = "target_up_5d"
+        purge_sessions = PURGE_SESSIONS
+        models = build_classification_models()
+        is_classification = True
+    elif task == "regression":
+        target_col = "future_return_63d" if "future_return_63d" in df.columns else "future_return_5d"
+        purge_sessions = PURGE_REGRESSION_SESSIONS if target_col == "future_return_63d" else PURGE_SESSIONS
+        models = build_regression_models()
+        is_classification = False
+    else:
+        raise ValueError(f"Unknown task: {task}. Choose 'classification' or 'regression'.")
+
+    # Filter labeled data
+    labeled_df = df.dropna(subset=[target_col]).copy()
+    if is_classification:
+        labeled_df[target_col] = labeled_df[target_col].astype(int)
+
+    dates = np.array(sorted(labeled_df["Date"].unique()))
+    n_dates = len(dates)
+
+    # Chronological partition: 85% development, 15% holdout
+    holdout_split_idx = int(n_dates * (1.0 - HOLDOUT_FRACTION))
+    holdout_start_idx = holdout_split_idx + purge_sessions
+
+    dev_dates = dates[:holdout_split_idx]
+    holdout_dates = dates[holdout_start_idx:]
+
+    dev_data = labeled_df[labeled_df["Date"].isin(dev_dates)].copy()
+    holdout_data = labeled_df[labeled_df["Date"].isin(holdout_dates)].copy()
+
+    print(f"Total labeled rows: {len(labeled_df):,} across {n_dates} dates.")
+    print(f"Development Set: {len(dev_data):,} rows ({dev_dates[0].strftime('%Y-%m-%d')} to {dev_dates[-1].strftime('%Y-%m-%d')})")
+    print(f"Purge Window: {purge_sessions} trading sessions")
+    print(f"Holdout Set: {len(holdout_data):,} rows ({holdout_dates[0].strftime('%Y-%m-%d')} to {holdout_dates[-1].strftime('%Y-%m-%d')})")
+
+    # --------------------------------------------------------------------------
+    # Walk-Forward Cross-Validation on Development Set
+    # --------------------------------------------------------------------------
+    print("\n--- Running Chronological Walk-Forward Cross-Validation ---")
+    n_dev_dates = len(dev_dates)
+    wf_records = []
+
+    for fold_idx, (train_pct, val_pct) in enumerate(WALK_FORWARD_SPECS, 1):
+        tr_end = int(n_dev_dates * train_pct)
+        vl_start = tr_end + purge_sessions
+        vl_end = int(n_dev_dates * val_pct)
+
+        tr_dates = dev_dates[:tr_end]
+        vl_dates = dev_dates[vl_start:vl_end]
+
+        tr_fold = dev_data[dev_data["Date"].isin(tr_dates)]
+        vl_fold = dev_data[dev_data["Date"].isin(vl_dates)]
+
+        X_tr = tr_fold[features]
+        y_tr = tr_fold[target_col]
+        X_vl = vl_fold[features]
+        y_vl = vl_fold[target_col]
+
+        fold_models = build_classification_models() if is_classification else build_regression_models()
+        tr_mean_val = float(y_tr.mean())
+
+        for m_name, pipe in fold_models.items():
+            pipe.fit(X_tr, y_tr)
+            preds = pipe.predict(X_vl)
+
+            if is_classification:
+                probs = pipe.predict_proba(X_vl)[:, 1] if hasattr(pipe, "predict_proba") else None
+                m = evaluate_classification(y_vl.to_numpy(), preds, probs)
+            else:
+                m = evaluate_regression(y_vl.to_numpy(), preds, tr_mean_val, vl_fold, None, None)
+
+            m["fold"] = fold_idx
+            m["model"] = m_name
+            m["train_rows"] = len(tr_fold)
+            m["val_rows"] = len(vl_fold)
+            wf_records.append(m)
+
+    wf_df = pd.DataFrame(wf_records)
+
+    # Model selection based on cross-validation
+    if is_classification:
+        mean_scores = wf_df[wf_df["model"] != "Majority_Class_Baseline"].groupby("model")["roc_auc"].mean()
+        best_model_name = mean_scores.idxmax()
+        print("\nWalk-Forward Cross-Validation Results (ROC-AUC):")
+        for m_name, grp in wf_df.groupby("model"):
+            print(f"  {m_name:30s} | ROC-AUC: {grp['roc_auc'].mean():.4f} +/- {grp['roc_auc'].std():.4f} | Bal Acc: {grp['balanced_accuracy'].mean():.4f}")
+        print(f"\nSelected Best Architecture: {best_model_name} (WF ROC-AUC: {mean_scores[best_model_name]:.4f})")
+    else:
+        mean_scores = wf_df[~wf_df["model"].str.contains("Baseline")].groupby("model")["mae"].mean()
+        best_model_name = mean_scores.idxmin()
+        print("\nWalk-Forward Cross-Validation Results (MAE & OOS R²):")
+        for m_name, grp in wf_df.groupby("model"):
+            print(f"  {m_name:30s} | MAE: {grp['mae'].mean():.4f} +/- {grp['mae'].std():.4f} | R² vs Mean: {grp['r2_vs_train_mean'].mean():.4f}")
+        print(f"\nSelected Best Architecture: {best_model_name} (WF MAE: {mean_scores[best_model_name]:.4f})")
+
+    # Fit best model on the full development set
+    best_pipe = models[best_model_name]
+    best_pipe.fit(dev_data[features], dev_data[target_col])
+    print(f"\nFitted best model ({best_model_name}) on full Development Set ({len(dev_data):,} rows).")
+
+    holdout_results = None
+    if evaluate_holdout:
+        print("\n--- Evaluating on Sequestered Final Holdout Window ---")
+        X_holdout = holdout_data[features]
+        y_holdout = holdout_data[target_col]
+        h_preds = best_pipe.predict(X_holdout)
+
+        if is_classification:
+            h_probs = best_pipe.predict_proba(X_holdout)[:, 1] if hasattr(best_pipe, "predict_proba") else None
+            holdout_results = evaluate_classification(y_holdout.to_numpy(), h_preds, h_probs)
+            print(f"Holdout ROC-AUC: {holdout_results['roc_auc']:.4f} | Accuracy: {holdout_results['accuracy']:.2%} | Bal Acc: {holdout_results['balanced_accuracy']:.2%}")
+        else:
+            dev_mean = float(dev_data[target_col].mean())
+            holdout_data["_pred"] = h_preds
+            holdout_results = evaluate_regression(y_holdout.to_numpy(), h_preds, dev_mean, holdout_data, "_pred", target_col)
+            print(f"Holdout MAE: {holdout_results['mae']:.4f} | RMSE: {holdout_results['rmse']:.4f} | OOS R²: {holdout_results['r2_vs_train_mean']:.4f} | Rank IC: {holdout_results['mean_rank_ic']:.4f}")
+    else:
+        print("\n[NOTE] Holdout set remains strictly UNTOUCHED as requested. Set --evaluate-holdout to evaluate.")
+
+    return {
+        "task": task,
+        "feature_subset": feature_subset,
+        "best_model_name": best_model_name,
+        "walk_forward_df": wf_df,
+        "best_pipeline": best_pipe,
+        "holdout_results": holdout_results,
+    }
+
+
 def run_synthetic_smoke_test() -> bool:
     """
     Executes a fast end-to-end training and evaluation test on a small synthetic fixture.
@@ -412,5 +580,27 @@ def run_synthetic_smoke_test() -> bool:
     return True
 
 
+def main():
+    parser = argparse.ArgumentParser(description="NSE Stock Prediction Quantitative Training Pipeline")
+    parser.add_argument("--smoke-test", action="store_true", help="Run fast synthetic smoke test")
+    parser.add_argument("--run-training", action="store_true", help="Execute the formal quantitative training pipeline")
+    parser.add_argument("--task", type=str, default="classification", choices=["classification", "regression"],
+                        help="Prediction task: 'classification' (5d direction) or 'regression' (63d return)")
+    parser.add_argument("--feature-subset", type=str, default="market", choices=["market", "fundamentals", "combined"],
+                        help="Feature configuration: 'market', 'fundamentals', or 'combined'")
+    parser.add_argument("--evaluate-holdout", action="store_true",
+                        help="Evaluate on the final sequestered holdout partition (default: False)")
+    args = parser.parse_args()
+
+    if args.run_training:
+        run_training_experiment(
+            task=args.task,
+            feature_subset=args.feature_subset,
+            evaluate_holdout=args.evaluate_holdout,
+        )
+    else:
+        run_synthetic_smoke_test()
+
+
 if __name__ == "__main__":
-    run_synthetic_smoke_test()
+    main()
