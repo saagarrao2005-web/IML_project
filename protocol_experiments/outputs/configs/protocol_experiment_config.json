@@ -1,0 +1,71 @@
+{
+  "protocol_name": "Do Fundamental Financial Indicators Improve ML-Based Prediction of Three-Month NSE Stock Returns?",
+  "protocol_version": "1.0 (24 October 2026)",
+  "prediction_frequency": "Monthly (Last trading session of month)",
+  "target_horizon": "3 calendar months (~63 trading sessions)",
+  "random_state": 42,
+  "bootstrap_replications": 2000,
+  "bootstrap_block_length_months": 3,
+  "universe_symbols_evaluated": [
+    "ABB",
+    "ADANIGREEN",
+    "APOLLOHOSP",
+    "HDFCBANK",
+    "INFY",
+    "MARUTI",
+    "MOTILALOFS",
+    "POWERINDIA",
+    "RELIANCE",
+    "SBIN",
+    "SIEMENS",
+    "SOLARINDS",
+    "TCS",
+    "TITAN",
+    "ULTRACEMCO",
+    "YESBANK"
+  ],
+  "matched_symbols_with_pit_fundamentals": [
+    "HDFCBANK",
+    "INFY",
+    "RELIANCE"
+  ],
+  "market_features": [
+    "ret_1m",
+    "ret_3m",
+    "ret_6m",
+    "ret_12m",
+    "mom_6m_ex1m",
+    "mom_12m_ex1m",
+    "vol_1m",
+    "vol_3m",
+    "vol_6m",
+    "log_turnover_1m",
+    "turnover_change_1m_3m",
+    "vol_volume_1m",
+    "median_traded_val_3m",
+    "delivery_pct_1m"
+  ],
+  "fundamental_groups": {
+    "valuation": [
+      "pe_proxy",
+      "pb_proxy"
+    ],
+    "profitability": [
+      "net_margin",
+      "roe_proxy",
+      "roa_proxy"
+    ],
+    "growth": [
+      "revenue_growth_yoy",
+      "pat_growth_yoy"
+    ],
+    "leverage": [
+      "debt_to_assets",
+      "debt_to_equity"
+    ],
+    "size": [
+      "size_log_mcap"
+    ]
+  },
+  "purge_window_months": 3
+}

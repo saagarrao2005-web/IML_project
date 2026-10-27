@@ -1,0 +1,41 @@
+{
+  "Ridge": {
+    "point_delta_mae": 0.03351543731907611,
+    "ci_delta_mae_95": [
+      0.010484394381190644,
+      0.05021016477164385
+    ],
+    "point_pct_improvement": -35.63958895630568,
+    "ci_pct_imp_95": [
+      -58.7948650840449,
+      -10.459968566130199
+    ],
+    "p_superiority_h0_delta_ge_zero": 1.0
+  },
+  "Random_Forest": {
+    "point_delta_mae": 0.004078765453117444,
+    "ci_delta_mae_95": [
+      -0.004843490018470032,
+      0.009444577751752264
+    ],
+    "point_pct_improvement": -4.050248129211105,
+    "ci_pct_imp_95": [
+      -10.919310728000786,
+      4.638580051403881
+    ],
+    "p_superiority_h0_delta_ge_zero": 0.7005
+  },
+  "HistGradientBoosting": {
+    "point_delta_mae": 0.0035810834971613664,
+    "ci_delta_mae_95": [
+      -0.006489405538062377,
+      0.010132321475397813
+    ],
+    "point_pct_improvement": -3.7079415336443677,
+    "ci_pct_imp_95": [
+      -10.440496558606661,
+      7.777347309602304
+    ],
+    "p_superiority_h0_delta_ge_zero": 0.694
+  }
+}

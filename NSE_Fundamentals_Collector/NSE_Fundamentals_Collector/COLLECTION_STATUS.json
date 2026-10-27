@@ -1,0 +1,36 @@
+{
+  "name": "NSE Fundamentals & Corporate Filings Collector",
+  "symbols": [
+    "ABB",
+    "ADANIGREEN",
+    "APOLLOHOSP",
+    "HDFCBANK",
+    "INFY",
+    "MARUTI",
+    "MOTILALOFS",
+    "POWERINDIA",
+    "RELIANCE",
+    "SBIN",
+    "SIEMENS",
+    "SOLARINDS",
+    "TCS",
+    "TITAN",
+    "ULTRACEMCO",
+    "YESBANK"
+  ],
+  "status": "scripts_created_not_executed_against_NSE",
+  "sources": [
+    "https://www.nseindia.com/companies-listing/corporate-filings-financial-results",
+    "https://www.nseindia.com/companies-listing/corporate-integrated-filing",
+    "https://www.nseindia.com/companies-listing/corporate-filings-announcements",
+    "https://www.nseindia.com/static/investor-relations/corporate-actions",
+    "https://bennythadikaran.github.io/NseIndiaApi/api.html",
+    "https://github.com/ShantanuAnant/nse-xbrl"
+  ],
+  "known_limitations": [
+    "Generated in an environment without outbound network access; no source files downloaded by this run.",
+    "NSE endpoints are undocumented and may block or change.",
+    "Old XBRL taxonomy parsing may require a separate parser.",
+    "Corporate actions endpoint may not provide complete historical coverage."
+  ]
+}

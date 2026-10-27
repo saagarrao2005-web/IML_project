@@ -1,0 +1,42 @@
+[
+  {
+    "mae": 0.11894868682477615,
+    "rmse": 0.16708370822632518,
+    "r2_oos": 0.02614478913645568,
+    "directional_accuracy": 0.0,
+    "rank_ic": NaN,
+    "model": "Zero_Return_Baseline"
+  },
+  {
+    "mae": 0.1260750032456263,
+    "rmse": 0.16931167614774933,
+    "r2_oos": 1.45328193923433e-13,
+    "directional_accuracy": 0.49583333333333335,
+    "rank_ic": NaN,
+    "model": "Historical_Mean_Baseline"
+  },
+  {
+    "mae": 0.12465057885748324,
+    "rmse": 0.17308086254009344,
+    "r2_oos": -0.04501923266331742,
+    "directional_accuracy": 0.5291666666666667,
+    "rank_ic": 0.09117647058823532,
+    "model": "Ridge_Regressor"
+  },
+  {
+    "mae": 0.12412869328717521,
+    "rmse": 0.17692200745064957,
+    "r2_oos": -0.09191768151711122,
+    "directional_accuracy": 0.5333333333333333,
+    "rank_ic": 0.17392156862745098,
+    "model": "Random_Forest_Regressor"
+  },
+  {
+    "mae": 0.13078076153140708,
+    "rmse": 0.1875277124334245,
+    "r2_oos": -0.2267529004684925,
+    "directional_accuracy": 0.5416666666666666,
+    "rank_ic": 0.21265651273519232,
+    "model": "HistGradientBoosting_Regressor"
+  }
+]

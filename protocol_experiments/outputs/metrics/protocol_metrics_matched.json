@@ -1,0 +1,101 @@
+[
+  {
+    "mae": 0.09097059004572618,
+    "rmse": 0.11167145663805346,
+    "r2_oos": 0.07194918950855056,
+    "directional_accuracy": 0.0,
+    "rank_ic": NaN,
+    "feature_set": "Baseline",
+    "model": "Zero_Return_Baseline"
+  },
+  {
+    "mae": 0.09544449317727867,
+    "rmse": 0.11591944787376451,
+    "r2_oos": 1.6536771951791707e-12,
+    "directional_accuracy": 0.24444444444444444,
+    "rank_ic": NaN,
+    "feature_set": "Baseline",
+    "model": "Historical_Mean_Baseline"
+  },
+  {
+    "mae": 0.0940399098321987,
+    "rmse": 0.121070785896397,
+    "r2_oos": -0.09085271080651447,
+    "directional_accuracy": 0.5333333333333333,
+    "rank_ic": 0.06666666666666667,
+    "feature_set": "Market_Only",
+    "model": "Ridge"
+  },
+  {
+    "mae": 0.11862215037638744,
+    "rmse": 0.14175523091038308,
+    "r2_oos": -0.49542824685645326,
+    "directional_accuracy": 0.2222222222222222,
+    "rank_ic": 0.06666666666666667,
+    "feature_set": "Fundamentals_Only",
+    "model": "Ridge"
+  },
+  {
+    "mae": 0.1275553471512748,
+    "rmse": 0.15925847181097894,
+    "r2_oos": -0.8875239908200392,
+    "directional_accuracy": 0.4444444444444444,
+    "rank_ic": 0.1,
+    "feature_set": "Combined",
+    "model": "Ridge"
+  },
+  {
+    "mae": 0.10070408831747042,
+    "rmse": 0.12432956264302931,
+    "r2_oos": -0.15036644159008095,
+    "directional_accuracy": 0.5111111111111111,
+    "rank_ic": 0.13333333333333333,
+    "feature_set": "Market_Only",
+    "model": "Random_Forest"
+  },
+  {
+    "mae": 0.1077517206602072,
+    "rmse": 0.1319964118981162,
+    "r2_oos": -0.2966167981824932,
+    "directional_accuracy": 0.24444444444444444,
+    "rank_ic": 0.16666666666666666,
+    "feature_set": "Fundamentals_Only",
+    "model": "Random_Forest"
+  },
+  {
+    "mae": 0.10478285377058787,
+    "rmse": 0.12806117317800675,
+    "r2_oos": -0.22045661144452566,
+    "directional_accuracy": 0.37777777777777777,
+    "rank_ic": 0.0,
+    "feature_set": "Combined",
+    "model": "Random_Forest"
+  },
+  {
+    "mae": 0.09657874766007116,
+    "rmse": 0.11951343864648321,
+    "r2_oos": -0.06296967868358005,
+    "directional_accuracy": 0.5555555555555556,
+    "rank_ic": 0.13333333333333333,
+    "feature_set": "Market_Only",
+    "model": "HistGradientBoosting"
+  },
+  {
+    "mae": 0.11014471450716344,
+    "rmse": 0.1347477534123429,
+    "r2_oos": -0.3512336699497589,
+    "directional_accuracy": 0.28888888888888886,
+    "rank_ic": 0.13333333333333333,
+    "feature_set": "Fundamentals_Only",
+    "model": "HistGradientBoosting"
+  },
+  {
+    "mae": 0.10015983115723252,
+    "rmse": 0.12363830427649243,
+    "r2_oos": -0.1376101863911754,
+    "directional_accuracy": 0.5333333333333333,
+    "rank_ic": 0.2,
+    "feature_set": "Combined",
+    "model": "HistGradientBoosting"
+  }
+]
