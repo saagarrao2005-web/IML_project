@@ -104,8 +104,13 @@ def run_full_pipeline():
     print(holdout_comp[["model", "accuracy", "balanced_accuracy", "precision", "recall", "f1", "roc_auc", "pr_auc"]].to_string(index=False))
 
     print("\nSelected Architecture:", eval_results["best_model_name"])
-    print(f"Secondary Regression Experiment MAE: {eval_results['regression_results']['mae']:.4f} "
-          f"| Directional Acc: {eval_results['regression_results']['directional_accuracy']:.4f}")
+    reg = eval_results["regression_results"]
+    print(f"Secondary Regression Experiment MAE: {reg['mae']:.4f} "
+          f"| RMSE: {reg['rmse']:.4f} "
+          f"| OOS R² (vs train-mean): {reg['r2_vs_train_mean']:.4f}"
+          f"\n  Directional Acc: {reg['directional_accuracy']:.4f}"
+          f" | Naive Zero-Return MAE: {reg['naive_zero_mae']:.4f}"
+          f" | Naive Train-Mean MAE: {reg['naive_mean_mae']:.4f}")
 
     print("\nTo generate predictions on latest data, run:")
     print("  python predict.py --symbol RELIANCE")

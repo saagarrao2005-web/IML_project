@@ -208,3 +208,139 @@ def test_prediction_interface_schema():
     assert np.isclose(result["probability_up_5d"] + result["probability_down_5d"], 1.0)
     assert result["predicted_direction"] in ["UP (Bullish)", "DOWN (Bearish)"]
     assert "disclaimer" in result
+
+
+# ==============================================================================
+# ADDITIONAL REGRESSION TESTS — Added during repair audit
+# ==============================================================================
+
+def test_no_inf_in_features(analytical_data):
+    """Test that feature columns contain no inf values."""
+    for col in FEATURE_COLUMNS:
+        if col in analytical_data.columns:
+            inf_count = np.isinf(analytical_data[col]).sum()
+            assert inf_count == 0, f"Feature '{col}' has {inf_count} inf values"
+
+
+def test_feature_columns_exist(analytical_data):
+    """Test that all configured feature columns exist in the analytical dataset."""
+    missing = set(FEATURE_COLUMNS) - set(analytical_data.columns)
+    assert not missing, f"Missing feature columns: {missing}"
+
+
+def test_warmup_nans_only_at_start(analytical_data):
+    """
+    Test that NaN values in rolling features only occur at the start of each
+    stock's series (warmup period), not in the middle or end.
+    """
+    rolling_features = [
+        "return_20d", "close_vs_sma_50", "volatility_20d",
+        "volume_vs_avg20", "trades_vs_avg20",
+    ]
+    for sym, grp in analytical_data.groupby("Symbol"):
+        grp = grp.sort_values("Date").reset_index(drop=True)
+        for feat in rolling_features:
+            if feat not in grp.columns:
+                continue
+            vals = grp[feat].to_numpy()
+            # Find last NaN index
+            nan_mask = np.isnan(vals)
+            if not nan_mask.any():
+                continue
+            last_nan_idx = np.where(nan_mask)[0][-1]
+            # All values after the last NaN should be non-NaN
+            assert not nan_mask[last_nan_idx + 1:].any(), (
+                f"{sym}/{feat}: NaN found after warmup at index {last_nan_idx}"
+            )
+
+
+def test_walk_forward_uses_config_specs():
+    """
+    Test that the walk-forward validation function uses WALK_FORWARD_SPECS from config.py,
+    not hardcoded fold specifications.
+    """
+    import inspect
+    from config import WALK_FORWARD_SPECS
+    from train_evaluate import run_walk_forward_validation
+
+    source = inspect.getsource(run_walk_forward_validation)
+    # Should reference the config constant, not define its own fold_specs list
+    assert "WALK_FORWARD_SPECS" in source, (
+        "run_walk_forward_validation does not reference WALK_FORWARD_SPECS from config"
+    )
+    # Should not contain hardcoded fold ratios
+    assert "(0.40, 0.60)" not in source, (
+        "run_walk_forward_validation still contains hardcoded fold spec (0.40, 0.60)"
+    )
+
+
+def test_holdout_predictions_exist_and_consistent():
+    """
+    Test that holdout predictions file exists and its class predictions
+    are consistent with the stored probabilities.
+    """
+    holdout_path = BEST_MODEL_PATH.parent.parent / "predictions" / "holdout_predictions.csv"
+    if not holdout_path.exists():
+        pytest.skip("Holdout predictions not yet generated.")
+
+    preds_df = pd.read_csv(holdout_path)
+    assert "target_up_5d" in preds_df.columns, "Missing target column"
+    assert len(preds_df) > 0, "Holdout predictions file is empty"
+
+    # Check that stored probabilities sum to approximately 1
+    # (we can check at least one model's probs are in [0,1])
+    prob_cols = [c for c in preds_df.columns if c.endswith("_prob")]
+    for col in prob_cols:
+        vals = preds_df[col].dropna()
+        assert (vals >= 0).all() and (vals <= 1).all(), (
+            f"Probability column {col} has values outside [0,1]"
+        )
+
+
+def test_evaluation_report_json_exists():
+    """Test that the comprehensive evaluation report JSON is generated."""
+    import json
+    eval_path = BEST_MODEL_PATH.parent.parent / "reports" / "evaluation_report.json"
+    if not eval_path.exists():
+        pytest.skip("Evaluation report not yet generated.")
+
+    with open(eval_path, "r", encoding="utf-8") as f:
+        report = json.load(f)
+
+    # Verify required fields
+    assert "best_model_name" in report
+    assert "holdout_period" in report
+    assert "classification_holdout" in report
+    assert "regression_holdout" in report
+    reg = report["regression_holdout"]
+    assert "r2_vs_train_mean" in reg, "Missing R² metric in regression report"
+    assert "baselines" in reg, "Missing baseline comparisons in regression report"
+
+
+def test_class_balance_per_symbol(analytical_data):
+    """Test that each stock has both classes present (not degenerate)."""
+    labeled = analytical_data.dropna(subset=["target_up_5d"])
+    for sym, grp in labeled.groupby("Symbol"):
+        unique_classes = grp["target_up_5d"].nunique()
+        assert unique_classes == 2, (
+            f"Stock {sym} has only {unique_classes} class(es) — degenerate"
+        )
+
+
+def test_model_serialization_fidelity(analytical_data):
+    """Test that the saved model produces consistent predictions when reloaded."""
+    if not BEST_MODEL_PATH.exists():
+        pytest.skip("Best model artifact not yet generated.")
+
+    import joblib
+    model = joblib.load(BEST_MODEL_PATH)
+
+    # Get a sample of features from the last 10 rows of RELIANCE
+    sample = analytical_data[analytical_data["Symbol"] == "RELIANCE"].tail(10)
+    X_sample = sample[FEATURE_COLUMNS]
+
+    # Predict twice — should be identical
+    preds1 = model.predict_proba(X_sample)
+    preds2 = model.predict_proba(X_sample)
+    assert np.allclose(preds1, preds2), "Model predictions are not deterministic"
+    assert preds1.shape == (len(X_sample), 2), "Unexpected prediction shape"

@@ -26,7 +26,7 @@ All features are constructed strictly using market data published on or before t
 | `volume_vs_avg20` | Liquidity | $V_t / 	ext{SMA}_{20}(V) - 1$ | 20 sessions | Median imputed in training fold |
 | `trades_vs_avg20` | Liquidity | $N_t / 	ext{SMA}_{20}(N) - 1$ | 20 sessions | Median imputed in training fold |
 | `delivery_pct` | Quality | $	ext{Deliverable Qty} / 	ext{Traded Qty} 	imes 100$ | 0 sessions | Fully available |
-| `rsi_14` | Oscillator | $100 - (100 / (1 + 	ext{RS}_{14}))$ | 14 sessions | Neutral 50.0 fallback |
+| `rsi_14` | Oscillator | $100 - (100 / (1 + \text{RS}_{14}))$ | 14 sessions | Median imputed in training fold |
 | `day_of_week` | Calendar | Integer 0 (Mon) to 4 (Fri) | 0 sessions | Fully available |
 | `month` | Calendar | Integer 1 (Jan) to 12 (Dec) | 0 sessions | Fully available |
 

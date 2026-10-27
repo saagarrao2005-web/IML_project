@@ -260,7 +260,7 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # 1. Multi-horizon returns on adjusted close
     for lag in [1, 2, 5, 10, 20]:
-        data[f"return_{lag}d"] = grouped["adj_close"].pct_change(lag, fill_method=None)
+        data[f"return_{lag}d"] = grouped["adj_close"].pct_change(lag)
 
     # 2. Moving average distance ratios
     for window in [5, 10, 20, 50]:
@@ -270,7 +270,7 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
         data[f"close_vs_sma_{window}"] = data["adj_close"] / sma - 1.0
 
     # 3. Rolling volatility (standard deviation of daily return)
-    daily_ret = grouped["adj_close"].pct_change(fill_method=None)
+    daily_ret = grouped["adj_close"].pct_change()
     data["volatility_10d"] = daily_ret.groupby(data["Symbol"]).transform(
         lambda s: s.rolling(10, min_periods=10).std()
     )
@@ -283,17 +283,26 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
     data["open_close_return"] = data["adj_close"] / data["adj_open"] - 1.0
 
     # 5. Volume and trading activity
-    data["volume_change_1d"] = grouped["adj_volume"].pct_change(fill_method=None)
+    data["volume_change_1d"] = grouped["adj_volume"].pct_change()
 
     vol_avg20 = grouped["adj_volume"].transform(
         lambda s: s.rolling(20, min_periods=20).mean()
     )
-    data["volume_vs_avg20"] = data["adj_volume"] / vol_avg20 - 1.0
+    # Guard against division by zero or NaN producing inf values
+    data["volume_vs_avg20"] = np.where(
+        (vol_avg20 > 0) & vol_avg20.notna(),
+        data["adj_volume"] / vol_avg20 - 1.0,
+        np.nan,
+    )
 
     trades_avg20 = grouped["No. of Trades"].transform(
         lambda s: s.rolling(20, min_periods=20).mean()
     )
-    data["trades_vs_avg20"] = data["No. of Trades"] / trades_avg20 - 1.0
+    data["trades_vs_avg20"] = np.where(
+        (trades_avg20 > 0) & trades_avg20.notna(),
+        data["No. of Trades"] / trades_avg20 - 1.0,
+        np.nan,
+    )
 
     # Delivery percentage
     if "% Dly Qt to Traded Qty" in data.columns:
@@ -310,7 +319,10 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
         avg_loss = loss.ewm(alpha=1.0 / period, min_periods=period, adjust=False).mean()
         rs = avg_gain / avg_loss.replace(0.0, np.nan)
         rsi = 100.0 - (100.0 / (1.0 + rs))
-        return rsi.fillna(50.0)
+        # Leave warmup NaN for the imputer to handle during training;
+        # filling with 50.0 here would introduce look-ahead bias by injecting
+        # a "neutral" value before the indicator has enough data to compute.
+        return rsi
 
     data["rsi_14"] = grouped["adj_close"].transform(compute_rsi)
 
@@ -438,7 +450,7 @@ All features are constructed strictly using market data published on or before t
 | `volume_vs_avg20` | Liquidity | $V_t / \text{SMA}_{20}(V) - 1$ | 20 sessions | Median imputed in training fold |
 | `trades_vs_avg20` | Liquidity | $N_t / \text{SMA}_{20}(N) - 1$ | 20 sessions | Median imputed in training fold |
 | `delivery_pct` | Quality | $\text{Deliverable Qty} / \text{Traded Qty} \times 100$ | 0 sessions | Fully available |
-| `rsi_14` | Oscillator | $100 - (100 / (1 + \text{RS}_{14}))$ | 14 sessions | Neutral 50.0 fallback |
+| `rsi_14` | Oscillator | $100 - (100 / (1 + \\text{RS}_{14}))$ | 14 sessions | Median imputed in training fold |
 | `day_of_week` | Calendar | Integer 0 (Mon) to 4 (Fri) | 0 sessions | Fully available |
 | `month` | Calendar | Integer 1 (Jan) to 12 (Dec) | 0 sessions | Fully available |
 

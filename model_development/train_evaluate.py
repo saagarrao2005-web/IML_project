@@ -67,6 +67,7 @@ from config import (
     PURGE_SESSIONS,
     RANDOM_STATE,
     HOLDOUT_FRACTION,
+    WALK_FORWARD_SPECS,
 )
 
 warnings.filterwarnings("ignore")
@@ -165,11 +166,8 @@ def run_walk_forward_validation(dev_data: pd.DataFrame, dates: np.ndarray) -> tu
     """
     print("\n--- Running Chronological Walk-Forward Validation ---")
     n_dates = len(dates)
-    fold_specs = [
-        (0.40, 0.60),
-        (0.60, 0.80),
-        (0.80, 1.00),
-    ]
+    # Use centralized fold specifications from config.py
+    fold_specs = WALK_FORWARD_SPECS
 
     records = []
 
@@ -290,15 +288,35 @@ def run_holdout_evaluation(train_data: pd.DataFrame, holdout_data: pd.DataFrame,
     reg_pipeline.fit(reg_train[FEATURE_COLUMNS], reg_train["future_return_5d"])
     reg_preds = reg_pipeline.predict(reg_holdout[FEATURE_COLUMNS])
 
-    reg_mae = float(mean_absolute_error(reg_holdout["future_return_5d"], reg_preds))
-    reg_rmse = float(root_mean_squared_error(reg_holdout["future_return_5d"], reg_preds))
+    y_true_reg = reg_holdout["future_return_5d"].to_numpy()
+    reg_mae = float(mean_absolute_error(y_true_reg, reg_preds))
+    reg_rmse = float(root_mean_squared_error(y_true_reg, reg_preds))
+
+    # Naive baselines for regression
+    train_mean_return = float(reg_train["future_return_5d"].mean())
+    naive_zero_mae = float(mean_absolute_error(y_true_reg, np.zeros_like(y_true_reg)))
+    naive_zero_rmse = float(root_mean_squared_error(y_true_reg, np.zeros_like(y_true_reg)))
+    naive_mean_preds = np.full_like(y_true_reg, train_mean_return)
+    naive_mean_mae = float(mean_absolute_error(y_true_reg, naive_mean_preds))
+    naive_mean_rmse = float(root_mean_squared_error(y_true_reg, naive_mean_preds))
+
+    # Out-of-sample R² (benchmark: training-mean predictor)
+    ss_res = float(np.sum((y_true_reg - reg_preds) ** 2))
+    ss_tot_mean = float(np.sum((y_true_reg - train_mean_return) ** 2))
+    ss_tot_zero = float(np.sum(y_true_reg ** 2))
+    reg_r2_vs_mean = 1.0 - ss_res / ss_tot_mean if ss_tot_mean > 0 else float("nan")
+    reg_r2_vs_zero = 1.0 - ss_res / ss_tot_zero if ss_tot_zero > 0 else float("nan")
+
     # Directional accuracy: sign(predicted return) == sign(actual return)
-    actual_direction = (reg_holdout["future_return_5d"] > 0).astype(int)
+    actual_direction = (y_true_reg > 0).astype(int)
     predicted_direction = (reg_preds > 0).astype(int)
     reg_dir_acc = float(accuracy_score(actual_direction, predicted_direction))
     reg_dir_auc = float(roc_auc_score(actual_direction, reg_preds))
 
     print(f"Regression MAE: {reg_mae:.4f} | RMSE: {reg_rmse:.4f}")
+    print(f"OOS R² (vs train-mean): {reg_r2_vs_mean:.4f} | OOS R² (vs zero): {reg_r2_vs_zero:.4f}")
+    print(f"Naive Zero-Return MAE: {naive_zero_mae:.4f} | RMSE: {naive_zero_rmse:.4f}")
+    print(f"Naive Train-Mean MAE: {naive_mean_mae:.4f} | RMSE: {naive_mean_rmse:.4f}")
     print(f"Regression Directional Accuracy: {reg_dir_acc:.4f} | Rank/ROC-AUC: {reg_dir_auc:.4f}")
 
     # Save best selected model
@@ -335,14 +353,61 @@ def run_holdout_evaluation(train_data: pd.DataFrame, holdout_data: pd.DataFrame,
     per_stock_df = pd.DataFrame(per_stock_records)
     per_stock_df.to_csv(PER_STOCK_EVAL_PATH, index=False)
 
+    # Save comprehensive evaluation report as JSON
+    eval_report = {
+        "evaluation_timestamp": pd.Timestamp.now().isoformat(),
+        "best_model_name": best_model_name,
+        "holdout_period": {
+            "start": holdout_data["Date"].min().strftime("%Y-%m-%d"),
+            "end": holdout_data["Date"].max().strftime("%Y-%m-%d"),
+            "n_observations": len(holdout_data),
+            "n_stocks": int(holdout_data["Symbol"].nunique()),
+        },
+        "training_period": {
+            "start": train_data["Date"].min().strftime("%Y-%m-%d"),
+            "end": train_data["Date"].max().strftime("%Y-%m-%d"),
+            "n_observations": len(train_data),
+        },
+        "classification_holdout": comparison_df.to_dict(orient="records"),
+        "regression_holdout": {
+            "model": "HistGradientBoostingRegressor",
+            "mae": reg_mae,
+            "rmse": reg_rmse,
+            "r2_vs_train_mean": reg_r2_vs_mean,
+            "r2_vs_zero": reg_r2_vs_zero,
+            "directional_accuracy": reg_dir_acc,
+            "directional_auc": reg_dir_auc,
+            "baselines": {
+                "zero_return": {"mae": naive_zero_mae, "rmse": naive_zero_rmse},
+                "train_mean_return": {
+                    "mean_value": train_mean_return,
+                    "mae": naive_mean_mae,
+                    "rmse": naive_mean_rmse,
+                },
+            },
+            "n_observations": len(reg_holdout),
+        },
+    }
+    eval_report_path = REPORTS_DIR / "evaluation_report.json"
+    with open(eval_report_path, "w", encoding="utf-8") as f:
+        json.dump(eval_report, f, indent=2, default=str)
+    print(f"\nComprehensive evaluation report saved to: {eval_report_path}")
+
     return {
         "comparison_df": comparison_df,
         "predictions_dict": predictions_dict,
         "regression_results": {
             "mae": reg_mae,
             "rmse": reg_rmse,
+            "r2_vs_train_mean": reg_r2_vs_mean,
+            "r2_vs_zero": reg_r2_vs_zero,
             "directional_accuracy": reg_dir_acc,
             "directional_auc": reg_dir_auc,
+            "naive_zero_mae": naive_zero_mae,
+            "naive_zero_rmse": naive_zero_rmse,
+            "naive_mean_mae": naive_mean_mae,
+            "naive_mean_rmse": naive_mean_rmse,
+            "train_mean_return": train_mean_return,
         },
         "per_stock_df": per_stock_df,
         "best_pipeline": best_pipeline,

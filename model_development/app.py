@@ -29,6 +29,7 @@ from config import (
     WALK_FORWARD_SUMMARY_PATH,
     PER_STOCK_EVAL_PATH,
     FIGURES_DIR,
+    REPORTS_DIR,
     EXPECTED_SYMBOLS,
     HORIZON_SESSIONS,
     CONFIRMED_CORPORATE_ACTIONS,
@@ -370,6 +371,25 @@ def get_evaluation_reports():
     return comp_df, wf_df, stock_df
 
 
+@st.cache_data
+def get_deployed_model_name() -> str:
+    """Determines the deployed model name from the evaluation report or walk-forward results."""
+    eval_report_path = REPORTS_DIR / "evaluation_report.json"
+    if eval_report_path.exists():
+        import json
+        with open(eval_report_path, "r", encoding="utf-8") as f:
+            report = json.load(f)
+        return report.get("best_model_name", "Logistic_Regression")
+    # Fallback: determine from walk-forward results
+    wf_path = REPORTS_DIR / "walk_forward_results.csv"
+    if wf_path.exists():
+        wf = pd.read_csv(wf_path)
+        candidates = wf[wf["model"] != "Dummy_Baseline"]
+        if not candidates.empty:
+            return candidates.groupby("model")["roc_auc"].mean().idxmax()
+    return "Logistic_Regression"
+
+
 # ==============================================================================
 # HELPER: Render a page header consistently
 # ==============================================================================
@@ -430,13 +450,14 @@ def render_sidebar():
     )
 
     st.sidebar.markdown("---")
+    deployed_name = get_deployed_model_name().replace("_", " ")
     st.sidebar.markdown(
         f"""
         <div class="sidebar-summary">
             <strong>Universe:</strong> {len(EXPECTED_SYMBOLS)} NSE Equities<br>
             <strong>Horizon:</strong> {HORIZON_SESSIONS} Trading Sessions<br>
             <strong>Data:</strong> Oct 2021 – Oct 2026<br>
-            <strong>Model:</strong> Logistic Regression (L2)<br>
+            <strong>Model:</strong> {deployed_name}<br>
             <strong>Validation:</strong> Walk-Forward (3 folds)
         </div>
         """,
@@ -487,7 +508,8 @@ def render_dashboard():
     with col2:
         _metric_card("Forecast Horizon", f"{HORIZON_SESSIONS} Sessions", f"Direction at t+{HORIZON_SESSIONS} vs t")
     with col3:
-        _metric_card("Deployed Model", "Logistic Reg.", "L2-Regularised Baseline")
+        deployed_label = get_deployed_model_name().replace("_", " ")
+        _metric_card("Deployed Model", deployed_label, "Walk-Forward Selected")
     with col4:
         _metric_card("Latest Data", latest_date_str, f"{total_records:,} total observations")
 
@@ -839,10 +861,11 @@ def render_stock_prediction():
 
         with t_col4:
             vol_ratio = latest_row["volume_vs_avg20"]
+            vol_display = vol_ratio + 1.0  # Convert from (V/avg - 1) to V/avg multiplier
             _metric_card(
                 "Volume vs 20D Avg",
-                f"{vol_ratio:.2f}x",
-                f"{'Above' if vol_ratio >= 1.0 else 'Below'} Average",
+                f"{vol_display:.2f}x",
+                f"{'Above' if vol_display >= 1.0 else 'Below'} Average ({vol_ratio:+.0%})",
             )
 
         st.caption(
@@ -920,7 +943,8 @@ def render_model_performance():
     if not comp_df.empty:
         non_dummy = comp_df[comp_df["model"] != "Dummy_Baseline"]
         best_holdout = non_dummy.loc[non_dummy["roc_auc"].idxmax()]
-        deployed = comp_df[comp_df["model"] == "Logistic_Regression"]
+        deployed_model_name = get_deployed_model_name()
+        deployed = comp_df[comp_df["model"] == deployed_model_name]
         deployed_auc = deployed.iloc[0]["roc_auc"] if not deployed.empty else "N/A"
         holdout_n = int(best_holdout["holdout_rows"])
     else:
@@ -940,7 +964,8 @@ def render_model_performance():
             st.info("No holdout evaluation data available.")
 
     with col2:
-        _metric_card("Deployed Pipeline AUC", f"{deployed_auc:.4f}", "Logistic Regression")
+        deployed_model_label = get_deployed_model_name().replace("_", " ")
+        _metric_card("Deployed Pipeline AUC", f"{deployed_auc:.4f}", deployed_model_label)
 
     with col3:
         _metric_card("Holdout Set Size", f"{holdout_n:,}", "Chronological test split")
