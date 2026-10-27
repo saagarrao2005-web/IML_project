@@ -16,11 +16,15 @@ Implements:
 from pathlib import Path
 import argparse
 import json
+import sys
 import warnings
 import joblib
 import numpy as np
 import pandas as pd
+import scipy
 from scipy.stats import spearmanr
+import sklearn
+import xgboost
 
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.dummy import DummyClassifier, DummyRegressor
@@ -43,6 +47,7 @@ from sklearn.metrics import (
     roc_auc_score,
     average_precision_score,
     brier_score_loss,
+    confusion_matrix,
     mean_absolute_error,
     root_mean_squared_error,
 )
@@ -58,6 +63,9 @@ from config import (
     BEST_MODEL_PATH,
     FIGURES_DIR,
     REPORTS_DIR,
+    PREDICTIONS_DIR,
+    MODELS_DIR,
+    OUTPUTS_DIR,
     FEATURE_COLUMNS,
     MARKET_FEATURES,
     FUNDAMENTAL_FEATURES,
@@ -214,12 +222,19 @@ def build_regression_models() -> dict:
 
 def evaluate_classification(y_true: np.ndarray, y_pred: np.ndarray, y_prob: np.ndarray) -> dict:
     """Computes comprehensive classification metrics."""
+    cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
+    tn, fp, fn, tp = cm.ravel()
     metrics = {
         "accuracy": float(accuracy_score(y_true, y_pred)),
         "balanced_accuracy": float(balanced_accuracy_score(y_true, y_pred)),
         "precision": float(precision_score(y_true, y_pred, zero_division=0)),
         "recall": float(recall_score(y_true, y_pred, zero_division=0)),
         "f1": float(f1_score(y_true, y_pred, zero_division=0)),
+        "tn": int(tn),
+        "fp": int(fp),
+        "fn": int(fn),
+        "tp": int(tp),
+        "confusion_matrix": [[int(tn), int(fp)], [int(fn), int(tp)]],
     }
     if y_prob is not None and len(np.unique(y_true)) > 1:
         metrics["roc_auc"] = float(roc_auc_score(y_true, y_prob))
@@ -402,11 +417,13 @@ def run_training_experiment(
     print(f"Holdout Set: {len(holdout_data):,} rows ({holdout_dates[0].strftime('%Y-%m-%d')} to {holdout_dates[-1].strftime('%Y-%m-%d')})")
 
     # --------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # Walk-Forward Cross-Validation on Development Set
     # --------------------------------------------------------------------------
     print("\n--- Running Chronological Walk-Forward Cross-Validation ---")
     n_dev_dates = len(dev_dates)
     wf_records = []
+    dev_fold_preds = []
 
     for fold_idx, (train_pct, val_pct) in enumerate(WALK_FORWARD_SPECS, 1):
         tr_end = int(n_dev_dates * train_pct)
@@ -427,15 +444,27 @@ def run_training_experiment(
         fold_models = build_classification_models() if is_classification else build_regression_models()
         tr_mean_val = float(y_tr.mean())
 
+        fold_preds = pd.DataFrame({
+            "fold": fold_idx,
+            "Date": vl_fold["Date"].dt.strftime("%Y-%m-%d").values,
+            "Symbol": vl_fold["Symbol"].values,
+            "actual": y_vl.values,
+        })
+
         for m_name, pipe in fold_models.items():
             pipe.fit(X_tr, y_tr)
             preds = pipe.predict(X_vl)
+            fold_preds[f"{m_name}_pred"] = preds
 
             if is_classification:
                 probs = pipe.predict_proba(X_vl)[:, 1] if hasattr(pipe, "predict_proba") else None
+                if probs is not None:
+                    fold_preds[f"{m_name}_prob"] = probs
                 m = evaluate_classification(y_vl.to_numpy(), preds, probs)
             else:
-                m = evaluate_regression(y_vl.to_numpy(), preds, tr_mean_val, vl_fold, None, None)
+                vl_fold_copy = vl_fold.copy()
+                vl_fold_copy["_pred"] = preds
+                m = evaluate_regression(y_vl.to_numpy(), preds, tr_mean_val, vl_fold_copy, "_pred", target_col)
 
             m["fold"] = fold_idx
             m["model"] = m_name
@@ -443,28 +472,171 @@ def run_training_experiment(
             m["val_rows"] = len(vl_fold)
             wf_records.append(m)
 
-    wf_df = pd.DataFrame(wf_records)
+        dev_fold_preds.append(fold_preds)
 
-    # Model selection based on cross-validation
+    wf_df = pd.DataFrame(wf_records)
+    dev_preds_df = pd.concat(dev_fold_preds, ignore_index=True)
+
+    # --------------------------------------------------------------------------
+    # Summarize and Select Best Architecture
+    # --------------------------------------------------------------------------
     if is_classification:
+        summary_rows = []
+        for m_name, grp in wf_df.groupby("model", sort=False):
+            summary_rows.append({
+                "model": m_name,
+                "roc_auc_mean": grp["roc_auc"].mean(),
+                "roc_auc_std": grp["roc_auc"].std(),
+                "balanced_accuracy_mean": grp["balanced_accuracy"].mean(),
+                "balanced_accuracy_std": grp["balanced_accuracy"].std(),
+                "accuracy_mean": grp["accuracy"].mean(),
+                "precision_mean": grp["precision"].mean(),
+                "recall_mean": grp["recall"].mean(),
+                "f1_mean": grp["f1"].mean(),
+                "brier_score_mean": grp["brier_score"].mean(),
+                "total_tn": int(grp["tn"].sum()),
+                "total_fp": int(grp["fp"].sum()),
+                "total_fn": int(grp["fn"].sum()),
+                "total_tp": int(grp["tp"].sum()),
+            })
+        summary_df = pd.DataFrame(summary_rows)
+
         mean_scores = wf_df[wf_df["model"] != "Majority_Class_Baseline"].groupby("model")["roc_auc"].mean()
         best_model_name = mean_scores.idxmax()
-        print("\nWalk-Forward Cross-Validation Results (ROC-AUC):")
-        for m_name, grp in wf_df.groupby("model"):
-            print(f"  {m_name:30s} | ROC-AUC: {grp['roc_auc'].mean():.4f} +/- {grp['roc_auc'].std():.4f} | Bal Acc: {grp['balanced_accuracy'].mean():.4f}")
-        print(f"\nSelected Best Architecture: {best_model_name} (WF ROC-AUC: {mean_scores[best_model_name]:.4f})")
+
+        print("\n" + "=" * 95)
+        print("TASK A: WALK-FORWARD CROSS-VALIDATION SUMMARY (CLASSIFICATION)")
+        print("=" * 95)
+        header = f"{'Model':30s} | {'ROC-AUC':17s} | {'Bal Acc':17s} | {'Precision':9s} | {'Recall':9s} | {'F1':9s}"
+        print(header)
+        print("-" * len(header))
+        for _, r in summary_df.iterrows():
+            auc_str = f"{r['roc_auc_mean']:.4f} +/- {r['roc_auc_std']:.4f}"
+            bacc_str = f"{r['balanced_accuracy_mean']:.4f} +/- {r['balanced_accuracy_std']:.4f}"
+            print(f"{r['model']:30s} | {auc_str:17s} | {bacc_str:17s} | {r['precision_mean']:.4f}    | {r['recall_mean']:.4f}    | {r['f1_mean']:.4f}")
+
+        print("\nFold-by-Fold Breakdown (ROC-AUC / Balanced Acc):")
+        for f_idx in sorted(wf_df["fold"].unique()):
+            print(f"  Fold {f_idx}:")
+            for _, r in wf_df[wf_df["fold"] == f_idx].iterrows():
+                print(f"    {r['model']:30s} | ROC-AUC: {r['roc_auc']:.4f} | Bal Acc: {r['balanced_accuracy']:.4f} | F1: {r['f1']:.4f} | [TN:{r['tn']} FP:{r['fp']} FN:{r['fn']} TP:{r['tp']}]")
+
+        print(f"\nSelected Best Architecture: {best_model_name} (Mean WF ROC-AUC: {mean_scores[best_model_name]:.4f})")
+
     else:
+        summary_rows = []
+        for m_name, grp in wf_df.groupby("model", sort=False):
+            summary_rows.append({
+                "model": m_name,
+                "mae_mean": grp["mae"].mean(),
+                "mae_std": grp["mae"].std(),
+                "rmse_mean": grp["rmse"].mean(),
+                "rmse_std": grp["rmse"].std(),
+                "r2_vs_train_mean": grp["r2_vs_train_mean"].mean(),
+                "r2_vs_zero": grp["r2_vs_zero"].mean(),
+                "directional_accuracy_mean": grp["directional_accuracy"].mean(),
+                "directional_auc_mean": grp["directional_auc"].mean(),
+                "mean_rank_ic": grp["mean_rank_ic"].mean(),
+                "rank_ic_t_stat": grp["rank_ic_t_stat"].mean(),
+            })
+        summary_df = pd.DataFrame(summary_rows)
+
         mean_scores = wf_df[~wf_df["model"].str.contains("Baseline")].groupby("model")["mae"].mean()
         best_model_name = mean_scores.idxmin()
-        print("\nWalk-Forward Cross-Validation Results (MAE & OOS R²):")
-        for m_name, grp in wf_df.groupby("model"):
-            print(f"  {m_name:30s} | MAE: {grp['mae'].mean():.4f} +/- {grp['mae'].std():.4f} | R² vs Mean: {grp['r2_vs_train_mean'].mean():.4f}")
-        print(f"\nSelected Best Architecture: {best_model_name} (WF MAE: {mean_scores[best_model_name]:.4f})")
 
-    # Fit best model on the full development set
+        print("\n" + "=" * 115)
+        print("TASK B: WALK-FORWARD CROSS-VALIDATION SUMMARY (REGRESSION)")
+        print("=" * 115)
+        header = f"{'Model':32s} | {'MAE':17s} | {'RMSE':17s} | {'OOS R²(Mean)':12s} | {'Dir Acc':9s} | {'Rank IC':9s}"
+        print(header)
+        print("-" * len(header))
+        for _, r in summary_df.iterrows():
+            mae_str = f"{r['mae_mean']:.4f} +/- {r['mae_std']:.4f}"
+            rmse_str = f"{r['rmse_mean']:.4f} +/- {r['rmse_std']:.4f}"
+            print(f"{r['model']:32s} | {mae_str:17s} | {rmse_str:17s} | {r['r2_vs_train_mean']:12.4f} | {r['directional_accuracy_mean']:.4f}    | {r['mean_rank_ic']:.4f}")
+
+        print("\nFold-by-Fold Breakdown (MAE / OOS R² vs Mean / Rank IC):")
+        for f_idx in sorted(wf_df["fold"].unique()):
+            print(f"  Fold {f_idx}:")
+            for _, r in wf_df[wf_df["fold"] == f_idx].iterrows():
+                print(f"    {r['model']:32s} | MAE: {r['mae']:.4f} | RMSE: {r['rmse']:.4f} | OOS R²: {r['r2_vs_train_mean']:.4f} | Rank IC: {r['mean_rank_ic']:.4f} (t={r['rank_ic_t_stat']:.2f})")
+
+        print(f"\nSelected Best Architecture: {best_model_name} (Mean WF MAE: {mean_scores[best_model_name]:.4f})")
+
+    # --------------------------------------------------------------------------
+    # Save Real Results to Established Directories
+    # --------------------------------------------------------------------------
+    for d in [REPORTS_DIR, PREDICTIONS_DIR, MODELS_DIR]:
+        d.mkdir(parents=True, exist_ok=True)
+
+    # 1. Per-observation development predictions
+    dev_preds_path = PREDICTIONS_DIR / f"development_{task}_predictions.csv"
+    dev_preds_df.to_csv(dev_preds_path, index=False)
+    print(f"\n[ARTIFACT] Saved per-observation development predictions ({len(dev_preds_df):,} rows) to: {dev_preds_path}")
+
+    # 2. Fold-wise results
+    wf_results_path = REPORTS_DIR / f"walk_forward_{task}_results.csv"
+    wf_df_to_save = wf_df.copy()
+    if "confusion_matrix" in wf_df_to_save.columns:
+        wf_df_to_save = wf_df_to_save.drop(columns=["confusion_matrix"])
+    wf_df_to_save.to_csv(wf_results_path, index=False)
+    print(f"[ARTIFACT] Saved fold-wise results to: {wf_results_path}")
+
+    # 3. Model summary metrics
+    summary_path = REPORTS_DIR / f"walk_forward_{task}_summary.csv"
+    summary_df.to_csv(summary_path, index=False)
+    print(f"[ARTIFACT] Saved model summary metrics to: {summary_path}")
+
+    # 4. Experiment configuration and provenance metadata JSON
+    exp_config = {
+        "task": task,
+        "feature_subset": feature_subset,
+        "features": features,
+        "n_features": len(features),
+        "dataset_path": str(data_path),
+        "total_dataset_rows": len(df),
+        "labeled_rows": len(labeled_df),
+        "symbols": EXPECTED_SYMBOLS,
+        "n_symbols": len(EXPECTED_SYMBOLS),
+        "development_period": {
+            "start_date": dev_dates[0].strftime("%Y-%m-%d"),
+            "end_date": dev_dates[-1].strftime("%Y-%m-%d"),
+            "n_dates": len(dev_dates),
+            "n_rows": len(dev_data),
+        },
+        "purge_sessions": purge_sessions,
+        "holdout_period": {
+            "start_date": holdout_dates[0].strftime("%Y-%m-%d"),
+            "end_date": holdout_dates[-1].strftime("%Y-%m-%d"),
+            "n_dates": len(holdout_dates),
+            "n_rows": len(holdout_data),
+            "evaluated": evaluate_holdout,
+        },
+        "walk_forward_specs": WALK_FORWARD_SPECS,
+        "random_state": RANDOM_STATE,
+        "selected_best_model": best_model_name,
+        "selection_metric": "roc_auc" if is_classification else "mae",
+        "environment": {
+            "python_version": sys.version,
+            "sklearn_version": sklearn.__version__,
+            "xgboost_version": getattr(xgboost, "__version__", "unknown"),
+            "pandas_version": pd.__version__,
+            "numpy_version": np.__version__,
+            "scipy_version": scipy.__version__,
+        },
+        "summary_metrics": summary_df.to_dict(orient="records"),
+    }
+    exp_config_path = REPORTS_DIR / f"experiment_config_{task}.json"
+    with open(exp_config_path, "w", encoding="utf-8") as f:
+        json.dump(exp_config, f, indent=2, default=str)
+    print(f"[ARTIFACT] Saved experiment configuration JSON to: {exp_config_path}")
+
+    # 5. Fit best model on the full development set and serialize
     best_pipe = models[best_model_name]
     best_pipe.fit(dev_data[features], dev_data[target_col])
-    print(f"\nFitted best model ({best_model_name}) on full Development Set ({len(dev_data):,} rows).")
+    best_dev_model_path = MODELS_DIR / f"{task}_best_dev_model.joblib"
+    joblib.dump(best_pipe, best_dev_model_path)
+    print(f"[ARTIFACT] Fitted best model ({best_model_name}) on full Development Set ({len(dev_data):,} rows) and saved to: {best_dev_model_path}")
 
     holdout_results = None
     if evaluate_holdout:

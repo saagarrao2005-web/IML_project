@@ -1,31 +1,184 @@
 {
-  "total_rows": 19840,
-  "unique_symbols": 16,
-  "symbols_list": [
-    "ABB",
-    "ADANIGREEN",
-    "APOLLOHOSP",
-    "HDFCBANK",
-    "INFY",
-    "MARUTI",
-    "MOTILALOFS",
-    "POWERINDIA",
-    "RELIANCE",
-    "SBIN",
-    "SIEMENS",
-    "SOLARINDS",
-    "TCS",
-    "TITAN",
-    "ULTRACEMCO",
-    "YESBANK"
-  ],
-  "date_min": "2021-10-25",
-  "date_max": "2026-10-23",
-  "invalid_dates": 0,
-  "duplicate_symbol_date_keys": 0,
-  "non_positive_close_prices": 0,
-  "ohlc_inconsistencies": 0,
-  "zero_or_negative_volume": 0,
-  "zero_or_negative_trades": 0,
-  "zero_or_negative_deliverable": 0
+  "status": "PASS",
+  "timestamp": "2026-10-27T15:29:16.009586",
+  "checks": {
+    "raw_csv_files_found": 16,
+    "total_rows": 19840,
+    "unique_symbols": 16,
+    "symbols_list": [
+      "ABB",
+      "ADANIGREEN",
+      "APOLLOHOSP",
+      "HDFCBANK",
+      "INFY",
+      "MARUTI",
+      "MOTILALOFS",
+      "POWERINDIA",
+      "RELIANCE",
+      "SBIN",
+      "SIEMENS",
+      "SOLARINDS",
+      "TCS",
+      "TITAN",
+      "ULTRACEMCO",
+      "YESBANK"
+    ],
+    "duplicate_symbol_date_keys": 0,
+    "invalid_dates": 0,
+    "non_monotonic_stocks": [],
+    "ohlc_violations": 0,
+    "non_positive_close_prices": 0,
+    "zero_or_negative_volume": 0,
+    "leaking_feature_names": [],
+    "target_5d_alignment_verified": true,
+    "target_63d_alignment_verified": true
+  },
+  "fundamental_coverage": {
+    "fundamental_columns_in_analytical_data": [],
+    "stock_coverage": {
+      "ABB": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      },
+      "ADANIGREEN": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      },
+      "APOLLOHOSP": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      },
+      "HDFCBANK": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      },
+      "INFY": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      },
+      "MARUTI": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      },
+      "MOTILALOFS": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      },
+      "POWERINDIA": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      },
+      "RELIANCE": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      },
+      "SBIN": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      },
+      "SIEMENS": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      },
+      "SOLARINDS": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      },
+      "TCS": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      },
+      "TITAN": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      },
+      "ULTRACEMCO": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      },
+      "YESBANK": {
+        "has_raw_filings_committed": false,
+        "has_fundamental_features": false,
+        "coverage_percentage": 0.0,
+        "status": "UNAVAILABLE"
+      }
+    },
+    "available_stocks_count": 0,
+    "total_stocks_count": 16,
+    "raw_filings_found_in_workspace": [],
+    "independent_finding": "Zero raw fundamental filings (XBRL/HTML/PDF) exist in the repository tree. The datasets directory contains exclusively daily NSE Bhavcopy market trade data. The prior statement that '3 of 16 stocks have filings and HDFCBANK had an extraction problem' was an external note or uncommitted exploratory effort; no raw filings or parsed fundamental tables are present in the Git tree. In accordance with Section 3 of the mandate, fundamental values must NEVER be fabricated or silently imputed. Therefore, fundamental-only and combined experiments cannot be evaluated on the full universe and are strictly classified as BLOCKED pending raw filing ingestion."
+  },
+  "corporate_actions": {
+    "MOTILALOFS": {
+      "type": "Bonus 3:1",
+      "ex_date": "2024-06-10",
+      "raw_ex_date_return": -0.7296328347138088,
+      "adj_ex_date_return": 0.08146866114476459,
+      "pre_factor": 0.25,
+      "post_factor": 1.0,
+      "turnover_invariance_max_diff": 0.0,
+      "status": "VERIFIED"
+    },
+    "RELIANCE": {
+      "type": "Bonus 1:1",
+      "ex_date": "2024-10-28",
+      "raw_ex_date_return": -0.49755243438641417,
+      "adj_ex_date_return": 0.004895131227171667,
+      "pre_factor": 0.5,
+      "post_factor": 1.0,
+      "turnover_invariance_max_diff": 0.0,
+      "status": "VERIFIED"
+    },
+    "SIEMENS": {
+      "type": "Demerger",
+      "ex_date": "2025-04-07",
+      "raw_ex_date_return": -0.4293091728133275,
+      "adj_ex_date_return": 0.14796220331027166,
+      "pre_factor": 0.4971338128912472,
+      "post_factor": 1.0,
+      "turnover_invariance_max_diff": 1.9073486328125e-06,
+      "status": "VERIFIED"
+    },
+    "HDFCBANK": {
+      "type": "Bonus 1:1",
+      "ex_date": "2025-08-26",
+      "raw_ex_date_return": -0.5044040527468052,
+      "adj_ex_date_return": -0.00880810549361033,
+      "pre_factor": 0.5,
+      "post_factor": 1.0,
+      "turnover_invariance_max_diff": 0.0,
+      "status": "VERIFIED"
+    }
+  },
+  "blockers": []
 }

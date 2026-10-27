@@ -1,0 +1,155 @@
+{
+  "task": "regression",
+  "feature_subset": "market",
+  "features": [
+    "return_1d",
+    "return_2d",
+    "return_5d",
+    "return_10d",
+    "return_20d",
+    "close_vs_sma_5",
+    "close_vs_sma_10",
+    "close_vs_sma_20",
+    "close_vs_sma_50",
+    "volatility_10d",
+    "volatility_20d",
+    "daily_range_pct",
+    "open_close_return",
+    "volume_change_1d",
+    "volume_vs_avg20",
+    "trades_vs_avg20",
+    "delivery_pct",
+    "rsi_14",
+    "day_of_week",
+    "month"
+  ],
+  "n_features": 20,
+  "dataset_path": "D:\\B.Tech\\Sem3\\IML\\Project\\Stock_Prediction\\model_development\\outputs\\datasets\\analytical_dataset.csv",
+  "total_dataset_rows": 19840,
+  "labeled_rows": 18832,
+  "symbols": [
+    "ABB",
+    "ADANIGREEN",
+    "APOLLOHOSP",
+    "HDFCBANK",
+    "INFY",
+    "MARUTI",
+    "MOTILALOFS",
+    "POWERINDIA",
+    "RELIANCE",
+    "SBIN",
+    "SIEMENS",
+    "SOLARINDS",
+    "TCS",
+    "TITAN",
+    "ULTRACEMCO",
+    "YESBANK"
+  ],
+  "n_symbols": 16,
+  "development_period": {
+    "start_date": "2021-10-25",
+    "end_date": "2025-11-03",
+    "n_dates": 1000,
+    "n_rows": 16000
+  },
+  "purge_sessions": 63,
+  "holdout_period": {
+    "start_date": "2026-02-04",
+    "end_date": "2026-07-23",
+    "n_dates": 114,
+    "n_rows": 1824,
+    "evaluated": false
+  },
+  "walk_forward_specs": [
+    [
+      0.5,
+      0.65
+    ],
+    [
+      0.65,
+      0.8
+    ],
+    [
+      0.8,
+      1.0
+    ]
+  ],
+  "random_state": 42,
+  "selected_best_model": "Random_Forest_Regressor",
+  "selection_metric": "mae",
+  "environment": {
+    "python_version": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "sklearn_version": "1.8.0",
+    "xgboost_version": "3.2.0",
+    "pandas_version": "3.0.1",
+    "numpy_version": "2.4.2",
+    "scipy_version": "1.17.1"
+  },
+  "summary_metrics": [
+    {
+      "model": "Zero_Return_Baseline",
+      "mae_mean": 0.1255809717885379,
+      "mae_std": 0.04297132255719755,
+      "rmse_mean": 0.1778015762609555,
+      "rmse_std": 0.07510348155195957,
+      "r2_vs_train_mean": 0.08073796406187565,
+      "r2_vs_zero": 0.0,
+      "directional_accuracy_mean": 0.49360265122913,
+      "directional_auc_mean": 0.5,
+      "mean_rank_ic": 0.0,
+      "rank_ic_t_stat": 0.0
+    },
+    {
+      "model": "Training_Mean_Baseline",
+      "mae_mean": 0.1405600583645493,
+      "mae_std": 0.04764964574909221,
+      "rmse_mean": 0.18778266587330647,
+      "rmse_std": 0.06727526398046121,
+      "r2_vs_train_mean": 0.0,
+      "r2_vs_zero": -0.18970722968450213,
+      "directional_accuracy_mean": 0.5063973487708701,
+      "directional_auc_mean": 0.5,
+      "mean_rank_ic": 0.0,
+      "rank_ic_t_stat": 0.0
+    },
+    {
+      "model": "Ridge_Regression",
+      "mae_mean": 0.1439840056431764,
+      "mae_std": 0.04964703866285966,
+      "rmse_mean": 0.1929717995081088,
+      "rmse_std": 0.07174709626342544,
+      "r2_vs_train_mean": -0.046714738376483954,
+      "r2_vs_zero": -0.24932939577852153,
+      "directional_accuracy_mean": 0.48941466006656037,
+      "directional_auc_mean": 0.5205818359478753,
+      "mean_rank_ic": -0.054777591882461514,
+      "rank_ic_t_stat": -2.1798242161468853
+    },
+    {
+      "model": "Random_Forest_Regressor",
+      "mae_mean": 0.14148009525571312,
+      "mae_std": 0.04740836445616595,
+      "rmse_mean": 0.19126977645415635,
+      "rmse_std": 0.07009927070813288,
+      "r2_vs_train_mean": -0.03200067893200539,
+      "r2_vs_zero": -0.22845881823189984,
+      "directional_accuracy_mean": 0.5020870039432839,
+      "directional_auc_mean": 0.5553469514559918,
+      "mean_rank_ic": -0.011355324913756078,
+      "rank_ic_t_stat": -0.343470498318875
+    },
+    {
+      "model": "Hist_Gradient_Boosting_Regressor",
+      "mae_mean": 0.14180547980159866,
+      "mae_std": 0.04615832050596685,
+      "rmse_mean": 0.19358585326056765,
+      "rmse_std": 0.07158867257125992,
+      "r2_vs_train_mean": -0.05607322085232713,
+      "r2_vs_zero": -0.2489347256396973,
+      "directional_accuracy_mean": 0.5166488379897642,
+      "directional_auc_mean": 0.5700811255727053,
+      "mean_rank_ic": 0.02350136146052624,
+      "rank_ic_t_stat": 1.285887939613952
+    }
+  ]
+}

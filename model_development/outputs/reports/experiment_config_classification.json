@@ -1,0 +1,170 @@
+{
+  "task": "classification",
+  "feature_subset": "market",
+  "features": [
+    "return_1d",
+    "return_2d",
+    "return_5d",
+    "return_10d",
+    "return_20d",
+    "close_vs_sma_5",
+    "close_vs_sma_10",
+    "close_vs_sma_20",
+    "close_vs_sma_50",
+    "volatility_10d",
+    "volatility_20d",
+    "daily_range_pct",
+    "open_close_return",
+    "volume_change_1d",
+    "volume_vs_avg20",
+    "trades_vs_avg20",
+    "delivery_pct",
+    "rsi_14",
+    "day_of_week",
+    "month"
+  ],
+  "n_features": 20,
+  "dataset_path": "D:\\B.Tech\\Sem3\\IML\\Project\\Stock_Prediction\\model_development\\outputs\\datasets\\analytical_dataset.csv",
+  "total_dataset_rows": 19840,
+  "labeled_rows": 19760,
+  "symbols": [
+    "ABB",
+    "ADANIGREEN",
+    "APOLLOHOSP",
+    "HDFCBANK",
+    "INFY",
+    "MARUTI",
+    "MOTILALOFS",
+    "POWERINDIA",
+    "RELIANCE",
+    "SBIN",
+    "SIEMENS",
+    "SOLARINDS",
+    "TCS",
+    "TITAN",
+    "ULTRACEMCO",
+    "YESBANK"
+  ],
+  "n_symbols": 16,
+  "development_period": {
+    "start_date": "2021-10-25",
+    "end_date": "2026-01-13",
+    "n_dates": 1049,
+    "n_rows": 16784
+  },
+  "purge_sessions": 5,
+  "holdout_period": {
+    "start_date": "2026-01-22",
+    "end_date": "2026-10-15",
+    "n_dates": 181,
+    "n_rows": 2896,
+    "evaluated": false
+  },
+  "walk_forward_specs": [
+    [
+      0.5,
+      0.65
+    ],
+    [
+      0.65,
+      0.8
+    ],
+    [
+      0.8,
+      1.0
+    ]
+  ],
+  "random_state": 42,
+  "selected_best_model": "Logistic_Regression",
+  "selection_metric": "roc_auc",
+  "environment": {
+    "python_version": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "sklearn_version": "1.8.0",
+    "xgboost_version": "3.2.0",
+    "pandas_version": "3.0.1",
+    "numpy_version": "2.4.2",
+    "scipy_version": "1.17.1"
+  },
+  "summary_metrics": [
+    {
+      "model": "Majority_Class_Baseline",
+      "roc_auc_mean": 0.5,
+      "roc_auc_std": 0.0,
+      "balanced_accuracy_mean": 0.5,
+      "balanced_accuracy_std": 0.0,
+      "accuracy_mean": 0.5240079883222722,
+      "precision_mean": 0.5240079883222722,
+      "recall_mean": 1.0,
+      "f1_mean": 0.6864157910140088,
+      "brier_score_mean": 0.4759920116777277,
+      "total_tn": 0,
+      "total_fp": 3877,
+      "total_fn": 0,
+      "total_tp": 4283
+    },
+    {
+      "model": "Logistic_Regression",
+      "roc_auc_mean": 0.5225149590778978,
+      "roc_auc_std": 0.011901686754368647,
+      "balanced_accuracy_mean": 0.5141010621167331,
+      "balanced_accuracy_std": 0.0163199019670462,
+      "accuracy_mean": 0.5024668823990871,
+      "precision_mean": 0.535560163920923,
+      "recall_mean": 0.5390179729077437,
+      "f1_mean": 0.5153000898105133,
+      "brier_score_mean": 0.25169526867959463,
+      "total_tn": 1813,
+      "total_fp": 2064,
+      "total_fn": 1985,
+      "total_tp": 2298
+    },
+    {
+      "model": "Random_Forest",
+      "roc_auc_mean": 0.5084945662474424,
+      "roc_auc_std": 0.005116418259993973,
+      "balanced_accuracy_mean": 0.503814921014427,
+      "balanced_accuracy_std": 0.0006534372906862304,
+      "accuracy_mean": 0.5030169152955719,
+      "precision_mean": 0.5275789114992028,
+      "recall_mean": 0.5595800259495903,
+      "f1_mean": 0.5342780810484564,
+      "brier_score_mean": 0.25275278336686774,
+      "total_tn": 1666,
+      "total_fp": 2211,
+      "total_fn": 1832,
+      "total_tp": 2451
+    },
+    {
+      "model": "Hist_Gradient_Boosting",
+      "roc_auc_mean": 0.5157038025261355,
+      "roc_auc_std": 0.010641683002449703,
+      "balanced_accuracy_mean": 0.512365624681049,
+      "balanced_accuracy_std": 0.01259602796053434,
+      "accuracy_mean": 0.5084677378475281,
+      "precision_mean": 0.5371325616622927,
+      "recall_mean": 0.5291210237441274,
+      "f1_mean": 0.525473608536109,
+      "brier_score_mean": 0.25693928101273134,
+      "total_tn": 1862,
+      "total_fp": 2015,
+      "total_fn": 1998,
+      "total_tp": 2285
+    },
+    {
+      "model": "XGBoost",
+      "roc_auc_mean": 0.5154163168730174,
+      "roc_auc_std": 0.00854498984799361,
+      "balanced_accuracy_mean": 0.5110439622305641,
+      "balanced_accuracy_std": 0.003383713673377348,
+      "accuracy_mean": 0.5122743610530791,
+      "precision_mean": 0.5314926988767463,
+      "recall_mean": 0.7572431794649696,
+      "f1_mean": 0.6132058495115636,
+      "brier_score_mean": 0.25402045249938965,
+      "total_tn": 949,
+      "total_fp": 2928,
+      "total_fn": 1036,
+      "total_tp": 3247
+    }
+  ]
+}
